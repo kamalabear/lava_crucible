@@ -107,15 +107,12 @@ local crucible_common = {
         return stack:get_count()
     end,
     on_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
-        minetest.log("action", "[lava_crucible] Inventory moved at " .. minetest.pos_to_string(pos))
         update_crucible_state(pos)
     end,
     on_metadata_inventory_put = function(pos, listname, index, stack, player)
-        minetest.log("action", "[lava_crucible] Item added to inventory at " .. minetest.pos_to_string(pos))
         update_crucible_state(pos)
     end,
     on_metadata_inventory_take = function(pos, listname, index, stack, player)
-        minetest.log("action", "[lava_crucible] Item taken from inventory at " .. minetest.pos_to_string(pos))
         update_crucible_state(pos)
     end,
     on_punch = function(pos, node, puncher, pointed_thing)
@@ -132,8 +129,6 @@ local crucible_common = {
                 minetest.chat_send_player(puncher:get_player_name(), "The input slot is full!")
             else
                 puncher:get_inventory():remove_item("main", wielded_item)
-                local added_count = item_to_add:get_count() - leftover:get_count()
-                minetest.log("action", "[lava_crucible] Added " .. added_count .. " stone to input slot at " .. minetest.pos_to_string(pos))
                 update_crucible_state(pos)
             end
         end
@@ -143,10 +138,11 @@ local crucible_common = {
         meta:set_string("infotext", "Lava Crucible")
         local inv = meta:get_inventory()
         inv:set_size("input", 1)
-        inv:set_size("output", 1)
+        inv:set_size("output", 4)
     end,
     on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
         local meta = minetest.get_meta(pos)
+        local inv = meta:get_inventory()
         local formspec = "size[9,7]" ..
             "bgcolor[#080808BB;true]" ..
             "background9[0,0;9,7;gui_formbg.png;true;10]" ..
@@ -154,7 +150,7 @@ local crucible_common = {
             "label[0.5,1;Input:]" ..
             "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";input;0.5,1.5;1,1;]" ..
             "label[3,1;Output:]" ..
-            "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";output;3,1.5;1,1;]" ..
+            "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";output;3,1.5;4,1;]" ..
             "label[0.5,3;Player Inventory:]" ..
             "list[current_player;main;0.5,3.5;8,3;]" ..
             "listring[current_player;main]" ..
@@ -195,29 +191,23 @@ minetest.register_abm({
     chance = 1,
     catch_up = true,
     action = function(pos, node, active_object_count, active_object_count_wider)
-        minetest.log("action", "[lava_crucible] Checking for stone in input slot at " .. minetest.pos_to_string(pos))
         update_crucible_state(pos)
         local meta = minetest.get_meta(pos)
         local inv = meta:get_inventory()
         local input_stack = inv:get_stack("input", 1)
-        local output_stack = inv:get_stack("output", 1)
         if input_stack:is_empty() then
-            minetest.log("action", "[lava_crucible] Input slot is empty")
             return
         end
         if minetest.get_item_group(input_stack:get_name(), "stone") <= 0 then
-            minetest.log("action", "[lava_crucible] Input item is not stone: " .. input_stack:get_name())
-            return
-        end
-        if not output_stack:is_empty() then
-            minetest.log("action", "[lava_crucible] Output slot is full")
             return
         end
         local lava_soil_count = input_stack:get_count()
         local lava_soil_stack = ItemStack("minetest_lava_crucible:lava_soil " .. lava_soil_count)
-        inv:set_stack("output", 1, lava_soil_stack)
+        local leftover = inv:add_item("output", lava_soil_stack)
+        if leftover:get_count() > 0 then
+            return
+        end
         inv:set_stack("input", 1, ItemStack(""))
-        minetest.log("action", "[lava_crucible] Converted " .. lava_soil_count .. " stone to lava_soil at " .. minetest.pos_to_string(pos))
         update_crucible_state(pos)
         return true
     end,
