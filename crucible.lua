@@ -147,19 +147,32 @@ local crucible_common = {
         type = "fixed",
         fixed = cbox,
     },
+    after_place_node = function(pos, placer, itemstack, pointed_thing)
+        if placer and placer:is_player() then
+            local meta = minetest.get_meta(pos)
+            meta:set_string("owner", placer:get_player_name())
+            meta:set_string("infotext", "Lava Crucible (owned by " .. placer:get_player_name() .. ")")
+        end
+    end,
     allow_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
         if to_list == "soil_output" or to_list == "dust_output" then
             return 0
         end
+        local owner = minetest.get_meta(pos):get_string("owner")
+        if owner ~= "" and player:get_player_name() ~= owner then return 0 end
         return count
     end,
     allow_metadata_inventory_put = function(pos, listname, index, stack, player)
         if listname == "soil_output" or listname == "dust_output" then
             return 0
         end
+        local owner = minetest.get_meta(pos):get_string("owner")
+        if owner ~= "" and player:get_player_name() ~= owner then return 0 end
         return stack:get_count()
     end,
     allow_metadata_inventory_take = function(pos, listname, index, stack, player)
+        local owner = minetest.get_meta(pos):get_string("owner")
+        if owner ~= "" and player:get_player_name() ~= owner then return 0 end
         return stack:get_count()
     end,
     on_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
@@ -178,6 +191,11 @@ local crucible_common = {
         update_crucible_state(pos)
     end,
     on_punch = function(pos, node, puncher, pointed_thing)
+        local owner = minetest.get_meta(pos):get_string("owner")
+        if owner ~= "" and puncher:get_player_name() ~= owner then
+            minetest.chat_send_player(puncher:get_player_name(), "This crucible belongs to " .. owner .. ".")
+            return
+        end
         local wielded_item = puncher:get_wielded_item()
         if wielded_item:is_empty() then
             return
@@ -230,6 +248,11 @@ local crucible_common = {
     end,
     on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
         local meta = minetest.get_meta(pos)
+        local owner = meta:get_string("owner")
+        if owner ~= "" and clicker:get_player_name() ~= owner then
+            minetest.chat_send_player(clicker:get_player_name(), "This crucible belongs to " .. owner .. ".")
+            return
+        end
         local inv = meta:get_inventory()
         local dust_cols = math.min(#dust_table, 8)
         local dust_rows = math.ceil(#dust_table / dust_cols)
