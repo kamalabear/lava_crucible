@@ -37,84 +37,107 @@ function convert_stone_to_lava_soil(itemstack)
     return nil
 end
 
-minetest.register_node("minetest_lava_crucible:lava_crucible", {
+local function clone_table(tbl)
+    local copy = {}
+    for k, v in pairs(tbl) do
+        copy[k] = v
+    end
+    return copy
+end
+
+local function has_adjacent_lava(pos)
+    local neighbors = {
+        {x = pos.x + 1, y = pos.y, z = pos.z},
+        {x = pos.x - 1, y = pos.y, z = pos.z},
+        {x = pos.x, y = pos.y + 1, z = pos.z},
+        {x = pos.x, y = pos.y - 1, z = pos.z},
+        {x = pos.x, y = pos.y, z = pos.z + 1},
+        {x = pos.x, y = pos.y, z = pos.z - 1},
+    }
+    for _, p in ipairs(neighbors) do
+        local node = minetest.get_node(p)
+        if node.name == "default:lava_source" or node.name == "default:lava_flowing" then
+            return true
+        end
+    end
+    return false
+end
+
+local function crucible_has_contents(meta)
+    local inv = meta:get_inventory()
+    return not inv:get_stack("input", 1):is_empty() or not inv:get_stack("output", 1):is_empty()
+end
+
+local function should_be_hot(pos)
+    local meta = minetest.get_meta(pos)
+    return crucible_has_contents(meta) and has_adjacent_lava(pos)
+end
+
+local function update_crucible_state(pos)
+    local node = minetest.get_node(pos)
+    local hot = should_be_hot(pos)
+    if hot and node.name ~= "minetest_lava_crucible:lava_crucible_hot" then
+        minetest.swap_node(pos, {name = "minetest_lava_crucible:lava_crucible_hot", param2 = node.param2})
+    elseif not hot and node.name ~= "minetest_lava_crucible:lava_crucible" then
+        minetest.swap_node(pos, {name = "minetest_lava_crucible:lava_crucible", param2 = node.param2})
+    end
+end
+
+local crucible_common = {
     description = "A crucible that is used by placing it over lava",
     is_ground_content = false,
     groups = {cracky = 1},
-    tiles = {
-        "crucible_top.png", -- up
-        "crucible_bottom.png", -- down
-        "crucible_side.png", -- right
-        "crucible_side.png", -- left
-        "crucible_side.png", -- back
-        "crucible_side.png", -- front
-    },
     node_box = {
         type = "fixed",
         fixed = cbox,
     },
     allow_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
-        -- Prevent moving items to the output slot
         if to_list == "output" then
             return 0
         end
         return count
     end,
-    
     allow_metadata_inventory_put = function(pos, listname, index, stack, player)
-        -- Prevent putting items directly into the output slot
         if listname == "output" then
             return 0
         end
         return stack:get_count()
     end,
-    
     allow_metadata_inventory_take = function(pos, listname, index, stack, player)
         return stack:get_count()
     end,
-    
     on_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
         minetest.log("action", "[lava_crucible] Inventory moved at " .. minetest.pos_to_string(pos))
+        update_crucible_state(pos)
     end,
-    
     on_metadata_inventory_put = function(pos, listname, index, stack, player)
         minetest.log("action", "[lava_crucible] Item added to inventory at " .. minetest.pos_to_string(pos))
+        update_crucible_state(pos)
     end,
-    
     on_metadata_inventory_take = function(pos, listname, index, stack, player)
         minetest.log("action", "[lava_crucible] Item taken from inventory at " .. minetest.pos_to_string(pos))
+        update_crucible_state(pos)
     end,
-
     on_punch = function(pos, node, puncher, pointed_thing)
-        -- Check if the player is holding a stone item
         local wielded_item = puncher:get_wielded_item()
         if wielded_item:is_empty() then
             return
         end
-        
         if minetest.get_item_group(wielded_item:get_name(), "stone") > 0 then
-            -- Get the inventory
             local meta = minetest.get_meta(pos)
             local inv = meta:get_inventory()
-            
-            -- Create a new ItemStack with the same contents
             local item_to_add = ItemStack(wielded_item:get_name() .. " " .. wielded_item:get_count())
-            
-            -- Try to add stone to the input slot
             local leftover = inv:add_item("input", item_to_add)
-            
             if leftover:get_count() == item_to_add:get_count() then
-                -- Nothing was added
                 minetest.chat_send_player(puncher:get_player_name(), "The input slot is full!")
             else
-                -- Some or all items were added, remove from player
                 puncher:get_inventory():remove_item("main", wielded_item)
                 local added_count = item_to_add:get_count() - leftover:get_count()
                 minetest.log("action", "[lava_crucible] Added " .. added_count .. " stone to input slot at " .. minetest.pos_to_string(pos))
+                update_crucible_state(pos)
             end
         end
     end,
-
     on_construct = function(pos)
         local meta = minetest.get_meta(pos)
         meta:set_string("infotext", "Lava Crucible")
@@ -122,10 +145,8 @@ minetest.register_node("minetest_lava_crucible:lava_crucible", {
         inv:set_size("input", 1)
         inv:set_size("output", 1)
     end,
-
     on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
         local meta = minetest.get_meta(pos)
-        
         local formspec = "size[9,7]" ..
             "bgcolor[#080808BB;true]" ..
             "background9[0,0;9,7;gui_formbg.png;true;10]" ..
@@ -140,58 +161,64 @@ minetest.register_node("minetest_lava_crucible:lava_crucible", {
             "listring[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";input]" ..
             "listring[current_player;main]" ..
             "listring[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";output]"
-        
         minetest.show_formspec(clicker:get_player_name(), "minetest_lava_crucible:crucible_gui", formspec)
     end,
-})
+}
+
+local cold_crucible = clone_table(crucible_common)
+cold_crucible.tiles = {
+    "crucible_top.png",
+    "crucible_bottom.png",
+    "crucible_side.png",
+    "crucible_side.png",
+    "crucible_side.png",
+    "crucible_side.png",
+}
+minetest.register_node("minetest_lava_crucible:lava_crucible", cold_crucible)
+
+local hot_crucible = clone_table(crucible_common)
+hot_crucible.tiles = {
+    "crucible_top_hot.png",
+    "crucible_bottom_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+}
+hot_crucible.light_source = 10
+minetest.register_node("minetest_lava_crucible:lava_crucible_hot", hot_crucible)
 
 minetest.register_abm({
-	nodenames = {"minetest_lava_crucible:lava_crucible"},
-	neighbors = {"default:lava_flowing", "default:lava_source"},
-	interval = 10.0, -- Run every 10 seconds
+    nodenames = {"minetest_lava_crucible:lava_crucible", "minetest_lava_crucible:lava_crucible_hot"},
+    neighbors = {"default:lava_flowing", "default:lava_source"},
+    interval = 10.0,
     chance = 1,
-    catch_up = true, -- Generate items that would have been generated while player was not present
+    catch_up = true,
     action = function(pos, node, active_object_count, active_object_count_wider)
         minetest.log("action", "[lava_crucible] Checking for stone in input slot at " .. minetest.pos_to_string(pos))
-        
-        -- Get the crucible inventory
+        update_crucible_state(pos)
         local meta = minetest.get_meta(pos)
         local inv = meta:get_inventory()
-        
-        -- Get input and output stacks
         local input_stack = inv:get_stack("input", 1)
         local output_stack = inv:get_stack("output", 1)
-        
-        -- Check if input is empty
         if input_stack:is_empty() then
             minetest.log("action", "[lava_crucible] Input slot is empty")
             return
         end
-        
-        -- Check if input is stone
         if minetest.get_item_group(input_stack:get_name(), "stone") <= 0 then
             minetest.log("action", "[lava_crucible] Input item is not stone: " .. input_stack:get_name())
             return
         end
-        
-        -- Check if output slot has room
         if not output_stack:is_empty() then
             minetest.log("action", "[lava_crucible] Output slot is full")
             return
         end
-        
-        -- Convert stone to lava_soil
         local lava_soil_count = input_stack:get_count()
         local lava_soil_stack = ItemStack("minetest_lava_crucible:lava_soil " .. lava_soil_count)
-        
-        -- Move converted items to output slot
         inv:set_stack("output", 1, lava_soil_stack)
-        
-        -- Clear input slot
         inv:set_stack("input", 1, ItemStack(""))
-        
         minetest.log("action", "[lava_crucible] Converted " .. lava_soil_count .. " stone to lava_soil at " .. minetest.pos_to_string(pos))
-        
+        update_crucible_state(pos)
         return true
     end,
 })
