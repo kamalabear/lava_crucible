@@ -1,3 +1,7 @@
 # How many seconds between each single-item conversion in the lava crucible.
 # Lower values convert faster; minimum recommended value is 1.
 lava_crucible_conversion_interval (Lava crucible conversion interval) float 10.0 1.0 600.0
+
+# Base probability (0.0 to 1.0) that a conversion yields a bonus ore dust.
+# The dust type is chosen by weighted rarity (diamond rarest, iron most common).
+lava_crucible_dust_chance (Lava crucible bonus dust chance) float 0.5 0.0 1.0
