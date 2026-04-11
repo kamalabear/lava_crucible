@@ -27,17 +27,17 @@ The crucible is **owner-locked**: only the player who placed it can open it, add
 
 ---
 
-## Tiers
+## Sizes
 
-Three tiers are available, each crafted from the previous. Higher tiers have more slots and convert more stone per tick.
+Three crucible sizes are available, with the larger sizes crafted by combining smaller crucibles. Larger sizes have more slots and converts faster.
 
-| Tier | Input slots | Soil output slots | Dust slots | Visual height |
+| Size | Input slots | Soil output slots | Dust slots | Visual height |
 |---|---|---|---|---|
 | **Single** | 1 | 1 | 4 (7 with `moreores`) | Half node |
 | **Double** | 2 | 2 | 8 (14 with `moreores`) | Three-quarter node |
 | **Quad** | 4 | 4 | 16 (28 with `moreores`) | Full node |
 
-Each tier also has a filled bowl appearance when input is present, so you can tell at a glance whether it is loaded.
+Each size also has a filled bowl appearance when input is present, so you can tell at a glance whether it is loaded.
 
 ---
 
@@ -72,10 +72,10 @@ The crucible top texture changes automatically to reflect its current state:
 
 | Appearance | Meaning |
 |---|---|
-| Cold, dark | No adjacent lava |
+| Cold, dark | No adjacent lava - place next to lava to use |
+| Glowing empty basin | Hot and empty — lava adjacent but nothing to process - add stone to get started |
 | Animated lava top, bright glow, filled bowl | Processing — lava adjacent and input loaded |
 | Lava soil top, dim glow | Done — input exhausted, output has items to collect |
-| Glowing empty basin | Hot and empty — lava adjacent but nothing to process |
 
 ---
 
@@ -93,7 +93,7 @@ Each conversion has a chance (default 50%) to produce a random ore dust in the d
 | Silver dust | Uncommon | `moreores` |
 | Mithril dust | Rare | `moreores` |
 
-Dust slots silently skip the bonus if they are full — no input is lost.
+If the dust stack is full, any additional dust from conversion will be lost.
 
 ---
 
