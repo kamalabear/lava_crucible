@@ -1,3 +1,7 @@
+# Vim swap files
+*.swp
+*.swo
+
 # Compiled Lua sources
 luac.out
 
