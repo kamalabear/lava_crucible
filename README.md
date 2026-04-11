@@ -31,6 +31,10 @@
 - Adds:
   - shapeless recipe: `default:copper_lump` -> `copper_dust`
   - cooking recipe: `default:copper_ingot` -> `default:copper_lump`
+- If `moreores` mod is present:
+  - Registers additional dusts: `tin_dust`, `silver_dust`, `mithril_dust`
+  - Adds shapeless recipes for each: `moreores:<metal>_lump` -> `<metal>_dust`
+  - Adds cooking recipes: `moreores:<metal>_ingot` -> `moreores:<metal>_lump`
 
 ### crucible.lua
 - Registers two nodes:
@@ -103,7 +107,7 @@
 ## Notes and possible issues
 - Conversion requires lava adjacency (flowing or source blocks)
 - Input and output slots are limited to 1 stack each (99 items max)
-- The mod currently only defines `copper_dust` and does not use `moreores` assets directly
+- The mod defines `copper_dust` by default; with `moreores` mod installed, additional dusts (`tin_dust`, `silver_dust`, `mithril_dust`) are available
 - Conversion logic accepts any item in group `stone`
 
 ---
