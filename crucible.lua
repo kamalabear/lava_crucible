@@ -118,9 +118,64 @@ local function get_ender_tier(nodename)
     else return "single" end
 end
 
-local dust_table
+local lava_crucible = rawget(_G, "lava_crucible") or {}
+_G.lava_crucible = lava_crucible
+
+local dust_table = {}
+local dust_entries_by_item = {}
+local dust_items_requiring_mineral_group = {}
+local dust_total_weight = 0
 local mod_storage = minetest.get_mod_storage()
 local ender_users_seen = {}
+
+local function recompute_dust_total_weight()
+    dust_total_weight = 0
+    for _, entry in ipairs(dust_table) do
+        dust_total_weight = dust_total_weight + entry.weight
+    end
+end
+
+function lava_crucible.register_dust_bonus(itemname, weight, options)
+    if type(itemname) ~= "string" or itemname == "" then
+        error("lava_crucible.register_dust_bonus: itemname must be a non-empty string")
+    end
+    if type(weight) ~= "number" or weight <= 0 then
+        error("lava_crucible.register_dust_bonus: weight must be a positive number")
+    end
+
+    local entry = dust_entries_by_item[itemname]
+    if entry then
+        entry.weight = weight
+    else
+        entry = {item = itemname, weight = weight}
+        dust_entries_by_item[itemname] = entry
+        table.insert(dust_table, entry)
+    end
+
+    if options and options.grant_mineral_dust_group then
+        dust_items_requiring_mineral_group[itemname] = true
+    end
+end
+
+local function apply_mineral_dust_overrides()
+    for itemname in pairs(dust_items_requiring_mineral_group) do
+        local def = minetest.registered_items[itemname]
+        if def then
+            local groups = clone_table(def.groups or {})
+            if groups.mineral_dust ~= 1 then
+                groups.mineral_dust = 1
+                minetest.override_item(itemname, {groups = groups})
+            end
+        else
+            minetest.log("warning", "[lava_crucible] Unable to add mineral_dust group to unregistered item " .. itemname)
+        end
+    end
+end
+
+minetest.register_on_mods_loaded(function()
+    apply_mineral_dust_overrides()
+    recompute_dust_total_weight()
+end)
 
 local function save_ender_users_seen()
     local users = {}
@@ -453,21 +508,42 @@ local function refresh_ender_user_from_nearby_player(pos)
 end
 
 -- Weighted dust table: higher weight = more common
-dust_table = {
-    {item = "ore_dust:iron_dust",    weight = 40},
-    {item = "ore_dust:copper_dust",  weight = 30},
-    {item = "ore_dust:gold_dust",    weight = 8},
-    {item = "ore_dust:diamond_dust", weight = 1},
-}
+lava_crucible.register_dust_bonus("ore_dust:iron_dust", 40)
+lava_crucible.register_dust_bonus("ore_dust:copper_dust", 30)
+lava_crucible.register_dust_bonus("ore_dust:gold_dust", 8)
+lava_crucible.register_dust_bonus("ore_dust:diamond_dust", 1)
+
 if minetest.get_modpath("moreores") then
-    table.insert(dust_table, {item = "ore_dust:tin_dust",    weight = 20})
-    table.insert(dust_table, {item = "ore_dust:silver_dust", weight = 5})
-    table.insert(dust_table, {item = "ore_dust:mithril_dust",weight = 2})
+    lava_crucible.register_dust_bonus("ore_dust:tin_dust", 20)
+    lava_crucible.register_dust_bonus("ore_dust:silver_dust", 5)
+    lava_crucible.register_dust_bonus("ore_dust:mithril_dust", 2)
 end
 
-local dust_total_weight = 0
-for _, entry in ipairs(dust_table) do
-    dust_total_weight = dust_total_weight + entry.weight
+if minetest.get_modpath("technic") then
+    local technic_dusts = {
+        {item = "technic:coal_dust", weight = 18},
+        {item = "technic:copper_dust", weight = 30},
+        {item = "technic:gold_dust", weight = 8},
+        {item = "technic:lead_dust", weight = 16},
+        {item = "technic:tin_dust", weight = 20},
+        {item = "technic:silver_dust", weight = 5},
+        {item = "technic:mithril_dust", weight = 2},
+        {item = "technic:zinc_dust", weight = 16},
+        {item = "technic:chromium_dust", weight = 6},
+        {item = "technic:sulfur_dust", weight = 6},
+    }
+
+    if minetest.get_modpath("everness") then
+        table.insert(technic_dusts, {item = "technic:pyrite_dust", weight = 4})
+    end
+
+    if minetest.get_modpath("nether") then
+        table.insert(technic_dusts, {item = "technic:nether_dust", weight = 3})
+    end
+
+    for _, entry in ipairs(technic_dusts) do
+        lava_crucible.register_dust_bonus(entry.item, entry.weight, {grant_mineral_dust_group = true})
+    end
 end
 
 local lump_table = {
@@ -488,6 +564,10 @@ for _, entry in ipairs(lump_table) do
 end
 
 local function pick_random_dust()
+    if #dust_table == 0 or dust_total_weight <= 0 then
+        return nil
+    end
+
     local roll = math.random() * dust_total_weight
     local cumulative = 0
     for _, entry in ipairs(dust_table) do
@@ -539,7 +619,7 @@ local function process_input_stack(inv, slot)
     input_stack:take_item(1)
     inv:set_stack("input", slot, input_stack)
 
-    if math.random() < dust_chance then
+    if bonus_item and math.random() < dust_chance then
         inv:add_item("dust_output", ItemStack(bonus_item .. " 1"))
     end
 
@@ -658,18 +738,22 @@ local crucible_common = {
         local inv = meta:get_inventory()
         local dust_cols = math.min(#dust_table, 8)
         local dust_rows = math.ceil(#dust_table / dust_cols)
-        local formspec = "size[9,8.5]" ..
+        local dust_y = 3.3
+        local inv_label_y = dust_y + dust_rows + 0.4
+        local inv_y = inv_label_y + 0.5
+        local form_h = inv_y + 3.2
+        local formspec = "size[9," .. form_h .. "]" ..
             "bgcolor[#080808BB;true]" ..
-            "background9[0,0;9,8.5;gui_formbg.png;true;10]" ..
+            "background9[0,0;9," .. form_h .. ";gui_formbg.png;true;10]" ..
             "label[0.5,0.3;Lava Crucible]" ..
             "label[0.5,1;Input:]" ..
             "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";input;0.5,1.5;1,1;]" ..
             "label[2.5,0.3;Soil Output:]" ..
             "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";soil_output;2.5,1;1,1;]" ..
-            "label[0.5,2.8;Ore Dust:]" ..
-            "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";dust_output;0.5,3.3;" .. dust_cols .. "," .. dust_rows .. ";]" ..
-            "label[0.5,4.5;Player Inventory:]" ..
-            "list[current_player;main;0.5,5;8,3;]" ..
+            "label[0.5," .. (dust_y - 0.4) .. ";Ore Dust:]" ..
+            "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";dust_output;0.5," .. dust_y .. ";" .. dust_cols .. "," .. dust_rows .. ";]" ..
+            "label[0.5," .. inv_label_y .. ";Player Inventory:]" ..
+            "list[current_player;main;0.5," .. inv_y .. ";8,3;]" ..
             "listring[current_player;main]" ..
             "listring[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";input]" ..
             "listring[current_player;main]" ..
@@ -903,18 +987,22 @@ crucible_ender_common.on_rightclick = function(pos, node, clicker, itemstack, po
 
     local dust_cols = math.min(#dust_table, 8)
     local dust_rows = math.ceil(#dust_table / dust_cols)
-    local formspec = "size[9,8.5]" ..
+    local dust_y = 3.3
+    local inv_label_y = dust_y + dust_rows + 0.4
+    local inv_y = inv_label_y + 0.5
+    local form_h = inv_y + 3.2
+    local formspec = "size[9," .. form_h .. "]" ..
         "bgcolor[#080808BB;true]" ..
-        "background9[0,0;9,8.5;gui_formbg.png;true;10]" ..
+        "background9[0,0;9," .. form_h .. ";gui_formbg.png;true;10]" ..
         "label[0.5,0.3;Ender Lava Crucible]" ..
         "label[0.5,1;Input:]" ..
         "list[detached:" .. inv_name .. ";input;0.5,1.5;1,1;]" ..
         "label[2.5,0.3;Soil Output:]" ..
         "list[detached:" .. inv_name .. ";soil_output;2.5,1;1,1;]" ..
-        "label[0.5,2.8;Ore Dust:]" ..
-        "list[detached:" .. inv_name .. ";dust_output;0.5,3.3;" .. dust_cols .. "," .. dust_rows .. ";]" ..
-        "label[0.5,4.5;Player Inventory:]" ..
-        "list[current_player;main;0.5,5;8,3;]" ..
+        "label[0.5," .. (dust_y - 0.4) .. ";Ore Dust:]" ..
+        "list[detached:" .. inv_name .. ";dust_output;0.5," .. dust_y .. ";" .. dust_cols .. "," .. dust_rows .. ";]" ..
+        "label[0.5," .. inv_label_y .. ";Player Inventory:]" ..
+        "list[current_player;main;0.5," .. inv_y .. ";8,3;]" ..
         "listring[current_player;main]" ..
         "listring[detached:" .. inv_name .. ";input]" ..
         "listring[current_player;main]" ..

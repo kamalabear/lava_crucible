@@ -13,6 +13,8 @@
 
 **Companion mod:** `ore_dust` (separate repository) — defines all `ore_dust:*_dust` items and their crafting recipes. This mod declares `depends = ore_dust` in `mod.conf`.
 
+**Optional integration:** `technic` can extend the crucible dust pool with selected ore-like technic dusts. Lava Crucible adds `mineral_dust = 1` to those selected technic items via `minetest.override_item()` at mod-load finalization time.
+
 ---
 
 ## Crafting items and chain
@@ -207,19 +209,24 @@ Crucibles with an empty owner string (e.g. placed before this feature or by non-
 
 ## `dust_table` and adding new dusts
 
+`dust_table` remains the runtime source of truth, but new entries are now registered through the public helper `lava_crucible.register_dust_bonus(itemname, weight, options)`.
+
 ```lua
-local dust_table = {
-    {item = "ore_dust:iron_dust",    weight = 40},
-    {item = "ore_dust:copper_dust",  weight = 30},
-    ...
-}
+lava_crucible.register_dust_bonus("ore_dust:iron_dust", 40)
+lava_crucible.register_dust_bonus("technic:lead_dust", 16, {
+    grant_mineral_dust_group = true,
+})
 ```
 
-Weights are relative — a weight of 40 against a total of 79 gives roughly a 50% chance. To add a new dust, insert a new `{item, weight}` entry. The `dust_total_weight` accumulator and `pick_random_dust()` function handle the rest automatically.
+Weights are relative — a weight of 40 against a total of 79 gives roughly a 50% chance. Register all dust entries during mod load, then `lava_crucible` recomputes `dust_total_weight` in `register_on_mods_loaded()` after optional integrations have finished registering their items.
 
-If `moreores` is present, tin/silver/mithril entries are appended at load time. The dust slot counts across all tiers are calculated from `#dust_table` at construction, so they expand automatically when new entries are added.
+The helper deduplicates by item name, so re-registering an existing item updates its weight instead of creating an extra output slot.
 
-Items in the `ore_dust` mod belong to group `mineral_dust = 1`, which is also required by the crucible crafting recipe (`group:mineral_dust`).
+If `moreores` is present, tin/silver/mithril entries are appended at load time. If `technic` is present, lava_crucible adds a curated set of non-alloy technic dusts and can mark those items with `mineral_dust = 1` by passing `grant_mineral_dust_group = true`.
+
+Dust slot counts across all tiers are calculated from `#dust_table` at construction time, so they expand automatically when new entries are added.
+
+There is currently no internal lava_crucible crafting recipe that uses `group:mineral_dust`; `lava_crucible:obsidian_clay` intentionally remains tied to `ore_dust:obsidian_dust`.
 
 Compressed stones use a parallel weighted table (`lump_table`) and `pick_random_lump()` for bonus outputs instead of dusts.
 
@@ -233,7 +240,9 @@ Current compressed stone rule:
 
 ## `ore_dust` mod relationship
 
-The `ore_dust` mod (companion repository: `kamalabear/ore_dust`) owns all dust item definitions and their 9-dust-to-ingot crafting recipes. This mod declares `depends = ore_dust`. The `metal_dust.lua` file in this mod is a stub left for historical reference.
+The `ore_dust` mod (companion repository: `kamalabear/ore_dust`) owns all `ore_dust:*` dust item definitions and their 9-dust-to-ingot crafting recipes. This mod declares `depends = ore_dust`. The `metal_dust.lua` file in this mod is a stub left for historical reference.
+
+Technic dust definitions remain owned by `technic`; lava_crucible only consumes those item names in its weighted output pool and selectively adds the `mineral_dust` group for compatibility.
 
 ---
 

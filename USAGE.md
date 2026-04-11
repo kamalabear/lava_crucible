@@ -2,7 +2,7 @@
 
 ## What it does
 
-The Lava Crucible processes stone into **lava soil** — a fertile, animated soil block — by submerging stone in lava heat. As a bonus, each conversion has a chance to produce **ore dust**, a crafting ingredient provided by the companion `ore_dust` mod.
+The Lava Crucible processes stone into **lava soil** — a fertile, animated soil block — by submerging stone in lava heat. As a bonus, each conversion has a chance to produce **mineral dust**. The default pool comes from the companion `ore_dust` mod, and installing `technic` expands that pool with additional ore-like technic dusts.
 
 ---
 
@@ -10,6 +10,7 @@ The Lava Crucible processes stone into **lava soil** — a fertile, animated soi
 
 - **Required mods:** `default`, `ore_dust`
 - **Optional:** `moreores` — enables tin, silver, and mithril dust drops
+- **Optional:** `technic` — adds selected technic dusts to crucible output and makes those items behave as `mineral_dust`
 
 ---
 
@@ -33,9 +34,11 @@ Three crucible sizes are available in both regular and Ender variants, with the 
 
 | Size | Input slots | Soil output slots | Dust slots | Visual height |
 |---|---|---|---|---|
-| **Single** | 1 | 1 | 4 (7 with `moreores`) | Half node |
-| **Double** | 2 | 2 | 8 (14 with `moreores`) | Three-quarter node |
-| **Quad** | 4 | 4 | 16 (28 with `moreores`) | Full node |
+| **Single** | 1 | 1 | 1× current dust pool size | Half node |
+| **Double** | 2 | 2 | 2× current dust pool size | Three-quarter node |
+| **Quad** | 4 | 4 | 4× current dust pool size | Full node |
+
+The current dust pool starts with 4 base `ore_dust` entries, grows to 7 with `moreores`, and grows further when `technic` is installed.
 
 Each size also has a filled bowl appearance when input is present, so you can tell at a glance whether it is loaded. Ender variants are tinted purple and share the same three sizes.
 

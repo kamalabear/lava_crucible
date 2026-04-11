@@ -2,7 +2,7 @@
 
 Adds craftable crucibles that process stone into lava soil when placed adjacent to lava. Three tiers of crucible are available — single, double, and quad — each upgradeable from the previous and visually distinct in height.
 
-Conversions have a chance to produce weighted ore dust bonuses, provided by the companion [`ore_dust`](https://github.com/kamalabear/ore_dust) mod.
+Conversions have a chance to produce weighted mineral dust bonuses. The base pool comes from the companion [`ore_dust`](https://github.com/kamalabear/ore_dust) mod, and `technic` can extend that pool with additional ore-like dusts.
 
 ---
 
@@ -10,6 +10,7 @@ Conversions have a chance to produce weighted ore dust bonuses, provided by the 
 
 - **Required:** `default`, `ore_dust`
 - **Optional:** `moreores` (enables tin, silver, and mithril dust drops)
+- **Optional:** `technic` (adds selected technic mineral dusts and marks them as `mineral_dust` items for compatibility)
 
 ---
 
