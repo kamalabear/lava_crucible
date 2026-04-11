@@ -43,26 +43,49 @@ Each size also has a filled bowl appearance when input is present, so you can te
 
 ## Crafting
 
-**Single crucible** — clay bowl shape with ore dust at the centre:
+All crucibles follow the same cup shape in the crafting grid:
 
 ```
-clay   ·     clay
-clay   dust  clay
- ·     clay   ·
-```
-(`dust` = any item in group `mineral_dust`)
-
-**Double crucible** — place two singles side by side in a crafting grid:
-
-```
-single  single
+item  ·     item
+item  ·     item
+·     item   ·
 ```
 
-**Quad crucible** — place two doubles side by side:
+**Step 1 — Clay Graphite** (shapeless): `clay_lump` + `coal_lump` → 2× `clay_graphite`
+
+**Step 2 — Uncured Crucible** — cup shape using `clay_graphite`:
 
 ```
-double  double
+graphite  ·         graphite
+graphite  ·         graphite
+·         graphite  ·
 ```
+
+**Step 3 — Single Crucible** — bake `uncured_crucible` in a furnace (15 seconds)
+
+---
+
+**Uncured Double Crucible** — cup shape using 5× `uncured_crucible`:
+
+```
+uncured  ·        uncured
+uncured  ·        uncured
+·        uncured  ·
+```
+
+**Double Crucible** — bake `uncured_double_crucible` in a furnace (20 seconds)
+
+---
+
+**Uncured Quad Crucible** — cup shape using 5× `uncured_double_crucible`:
+
+```
+unc.dbl  ·         unc.dbl
+unc.dbl  ·         unc.dbl
+·        unc.dbl   ·
+```
+
+**Quad Crucible** — bake `uncured_quad_crucible` in a furnace (25 seconds)
 
 ---
 

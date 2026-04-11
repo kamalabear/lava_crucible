@@ -15,6 +15,37 @@
 
 ---
 
+## Crafting items and chain
+
+All crafted items are registered as `craftitem` (not nodes). The full chain:
+
+| Item | Registered name | How obtained |
+|---|---|---|
+| Clay Graphite | `minetest_lava_crucible:clay_graphite` | Shapeless: `clay_lump` + `coal_lump` → 2× |
+| Uncured Crucible | `minetest_lava_crucible:uncured_crucible` | Cup shape (5×) of `clay_graphite` |
+| Uncured Double Crucible | `minetest_lava_crucible:uncured_double_crucible` | Cup shape (5×) of `uncured_crucible` |
+| Uncured Quad Crucible | `minetest_lava_crucible:uncured_quad_crucible` | Cup shape (5×) of `uncured_double_crucible` |
+
+Each uncured item is then cooked in a furnace to produce the corresponding node:
+
+| Input | Output | Cook time |
+|---|---|---|
+| `uncured_crucible` | `lava_crucible` | 15 s |
+| `uncured_double_crucible` | `lava_crucible_double` | 20 s |
+| `uncured_quad_crucible` | `lava_crucible_quad` | 25 s |
+
+The **cup shape** used for all three uncured recipes:
+
+```
+item  ·     item
+item  ·     item
+·     item  ·
+```
+
+Inventory images: `clay_graphite.png`, `uncured_crucible.png` (shared by all three uncured items — distinct art can be added later).
+
+---
+
 ## Node naming conventions
 
 All crucible nodes follow the pattern:
@@ -177,3 +208,4 @@ The `ore_dust` mod (companion repository: `kamalabear/ore_dust`) owns all dust i
 - **Lava-throw dust:** when stone is thrown directly into lava (no crucible), occasionally spawn a mineral dust item that floats to the surface for the player to grab
 - **Nether crucible:** acts like a nether chest — each player has their own private inventory in the same physical node
 - **Compressed stone support:** processing compressed stone generates nuggets or shards instead of dust
+- **Support dropping stone into the crucible**
