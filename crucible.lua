@@ -63,26 +63,37 @@ local function has_adjacent_lava(pos)
     return false
 end
 
-local function crucible_has_contents(meta)
+local function crucible_input_empty(meta)
+    return meta:get_inventory():get_stack("input", 1):is_empty()
+end
+
+local function crucible_output_has_items(meta)
     local inv = meta:get_inventory()
-    if not inv:get_stack("input", 1):is_empty() then return true end
     for i = 1, inv:get_size("output") do
         if not inv:get_stack("output", i):is_empty() then return true end
     end
     return false
 end
 
+local function crucible_has_contents(meta)
+    if not crucible_input_empty(meta) then return true end
+    return crucible_output_has_items(meta)
+end
+
 local function update_crucible_state(pos)
     local node = minetest.get_node(pos)
     local meta = minetest.get_meta(pos)
     local lava = has_adjacent_lava(pos)
-    local contents = crucible_has_contents(meta)
+    local input_empty = crucible_input_empty(meta)
+    local output_full = crucible_output_has_items(meta)
 
     local target
     if not lava then
         target = "minetest_lava_crucible:lava_crucible"
-    elseif contents then
+    elseif not input_empty then
         target = "minetest_lava_crucible:lava_crucible_hot"
+    elseif output_full then
+        target = "minetest_lava_crucible:lava_crucible_hot_done"
     else
         target = "minetest_lava_crucible:lava_crucible_hot_empty"
     end
@@ -213,8 +224,20 @@ hot_crucible_empty.tiles = {
 hot_crucible_empty.light_source = 7
 minetest.register_node("minetest_lava_crucible:lava_crucible_hot_empty", hot_crucible_empty)
 
+local hot_crucible_done = clone_table(crucible_common)
+hot_crucible_done.tiles = {
+    "crucible_top_hot_done.png",
+    "crucible_bottom_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+}
+hot_crucible_done.light_source = 7
+minetest.register_node("minetest_lava_crucible:lava_crucible_hot_done", hot_crucible_done)
+
 minetest.register_abm({
-    nodenames = {"minetest_lava_crucible:lava_crucible", "minetest_lava_crucible:lava_crucible_hot", "minetest_lava_crucible:lava_crucible_hot_empty"},
+    nodenames = {"minetest_lava_crucible:lava_crucible", "minetest_lava_crucible:lava_crucible_hot", "minetest_lava_crucible:lava_crucible_hot_done", "minetest_lava_crucible:lava_crucible_hot_empty"},
     neighbors = {"default:lava_flowing", "default:lava_source"},
     interval = 10.0,
     chance = 1,
@@ -230,13 +253,12 @@ minetest.register_abm({
         if minetest.get_item_group(input_stack:get_name(), "stone") <= 0 then
             return
         end
-        local lava_soil_count = input_stack:get_count()
-        local lava_soil_stack = ItemStack("minetest_lava_crucible:lava_soil " .. lava_soil_count)
-        local leftover = inv:add_item("output", lava_soil_stack)
+        local leftover = inv:add_item("output", ItemStack("minetest_lava_crucible:lava_soil 1"))
         if leftover:get_count() > 0 then
             return
         end
-        inv:set_stack("input", 1, ItemStack(""))
+        input_stack:take_item(1)
+        inv:set_stack("input", 1, input_stack)
         update_crucible_state(pos)
         return true
     end,
