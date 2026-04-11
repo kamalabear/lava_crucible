@@ -54,10 +54,18 @@ minetest.register_node("minetest_lava_crucible:lava_crucible", {
         fixed = cbox,
     },
     allow_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
+        -- Prevent moving items to the output slot
+        if to_list == "output" then
+            return 0
+        end
         return count
     end,
     
     allow_metadata_inventory_put = function(pos, listname, index, stack, player)
+        -- Prevent putting items directly into the output slot
+        if listname == "output" then
+            return 0
+        end
         return stack:get_count()
     end,
     
