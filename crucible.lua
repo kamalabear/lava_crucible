@@ -241,15 +241,15 @@ local dust_chance = tonumber(minetest.settings:get("lava_crucible_dust_chance"))
 
 -- Weighted dust table: higher weight = more common
 local dust_table = {
-    {item = "mineral_dust:iron_dust",    weight = 40},
-    {item = "mineral_dust:copper_dust",  weight = 30},
-    {item = "mineral_dust:gold_dust",    weight = 8},
-    {item = "mineral_dust:diamond_dust", weight = 1},
+    {item = "ore_dust:iron_dust",    weight = 40},
+    {item = "ore_dust:copper_dust",  weight = 30},
+    {item = "ore_dust:gold_dust",    weight = 8},
+    {item = "ore_dust:diamond_dust", weight = 1},
 }
 if minetest.get_modpath("moreores") then
-    table.insert(dust_table, {item = "mineral_dust:tin_dust",    weight = 20})
-    table.insert(dust_table, {item = "mineral_dust:silver_dust", weight = 5})
-    table.insert(dust_table, {item = "mineral_dust:mithril_dust",weight = 2})
+    table.insert(dust_table, {item = "ore_dust:tin_dust",    weight = 20})
+    table.insert(dust_table, {item = "ore_dust:silver_dust", weight = 5})
+    table.insert(dust_table, {item = "ore_dust:mithril_dust",weight = 2})
 end
 
 local dust_total_weight = 0
