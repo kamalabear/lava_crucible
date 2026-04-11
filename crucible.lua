@@ -554,7 +554,7 @@ crucible_quad_common.on_timer = function(pos, elapsed)
         if not input_stack:is_empty() and minetest.get_item_group(input_stack:get_name(), "stone") > 0 then
             local leftover = inv:add_item("soil_output", ItemStack("minetest_lava_crucible:lava_soil 1"))
             if leftover:get_count() == 0 then
-                input_stack:take_item(1) 1
+                input_stack:take_item(1)
                 inv:set_stack("input", i, input_stack)
                 if math.random() < dust_chance then
                     inv:add_item("dust_output", ItemStack(pick_random_dust() .. " 1"))
@@ -727,20 +727,50 @@ minetest.register_craft({
     cooktime = 15,
 })
 
-minetest.register_craft({
-    type = "shaped",
-    output = "minetest_lava_crucible:lava_crucible_double 1",
-    recipe = {
-        {"minetest_lava_crucible:lava_crucible", "minetest_lava_crucible:lava_crucible"},
-    }
+-- Uncured Double Crucible: 5 uncured crucibles in a cup shape, then baked
+minetest.register_craftitem("minetest_lava_crucible:uncured_double_crucible", {
+    description = "Uncured Double Crucible",
+    inventory_image = "uncured_crucible.png",
 })
 
 minetest.register_craft({
     type = "shaped",
-    output = "minetest_lava_crucible:lava_crucible_quad 1",
+    output = "minetest_lava_crucible:uncured_double_crucible 1",
     recipe = {
-        {"minetest_lava_crucible:lava_crucible_double", "minetest_lava_crucible:lava_crucible_double"},
+        {"minetest_lava_crucible:uncured_crucible", "",                                   "minetest_lava_crucible:uncured_crucible"},
+        {"minetest_lava_crucible:uncured_crucible", "",                                   "minetest_lava_crucible:uncured_crucible"},
+        {"",                                        "minetest_lava_crucible:uncured_crucible", ""},
     }
+})
+
+minetest.register_craft({
+    type = "cooking",
+    output = "minetest_lava_crucible:lava_crucible_double 1",
+    recipe = "minetest_lava_crucible:uncured_double_crucible",
+    cooktime = 20,
+})
+
+-- Uncured Quad Crucible: 5 uncured double crucibles in a cup shape, then baked
+minetest.register_craftitem("minetest_lava_crucible:uncured_quad_crucible", {
+    description = "Uncured Quad Crucible",
+    inventory_image = "uncured_crucible.png",
+})
+
+minetest.register_craft({
+    type = "shaped",
+    output = "minetest_lava_crucible:uncured_quad_crucible 1",
+    recipe = {
+        {"minetest_lava_crucible:uncured_double_crucible", "",                                          "minetest_lava_crucible:uncured_double_crucible"},
+        {"minetest_lava_crucible:uncured_double_crucible", "",                                          "minetest_lava_crucible:uncured_double_crucible"},
+        {"",                                               "minetest_lava_crucible:uncured_double_crucible", ""},
+    }
+})
+
+minetest.register_craft({
+    type = "cooking",
+    output = "minetest_lava_crucible:lava_crucible_quad 1",
+    recipe = "minetest_lava_crucible:uncured_quad_crucible",
+    cooktime = 25,
 })
 
 -- Formspec handler for the crucible GUI
