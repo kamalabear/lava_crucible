@@ -1,132 +1,127 @@
-## Overview: minetest_lava_crucible
+# Lava Crucible
 
-### Files in the mod
-- init.lua
-- crucible.lua
-- metal_dust.lua
-- mod.conf
-- `textures/lava_soil.png`
-- `textures/crucible_top.png`
-- `textures/crucible_top_hot.png` (animated, 16 frames)
-- `textures/crucible_top_hot_empty.png`
-- `textures/crucible_top_hot_done.png`
-- `textures/crucible_bottom.png`, `crucible_bottom_hot.png`
-- `textures/crucible_side.png`, `crucible_side_hot.png`
-- `.git/`, `.gitignore`, `LICENSE`
-- README.md
+Adds craftable crucibles that process stone into lava soil when placed adjacent to lava. Three tiers of crucible are available, each upgradeable from the previous.
 
 ---
 
-## What the mod does
+## Dependencies
 
-### init.lua
-- Loads the two main scripts:
-  - crucible.lua
-  - metal_dust.lua
+- **Required:** `default`, `ore_dust`
+- **Optional:** `moreores` (enables additional ore dusts)
 
-### mod.conf
-- Mod metadata:
-  - `name = minetest_lava_crucible`
-  - `display_name = Lava Crucible`
-  - `description = Adds a crucible that can be used to melt down minerals over lava.`
-  - `optional_depends = moreores`
+---
 
-### metal_dust.lua
-- Registers a craft item:
-  - `minetest_lava_crucible:copper_dust`
-- Adds:
-  - shapeless recipe: `default:copper_lump` -> `copper_dust`
-  - cooking recipe: `default:copper_ingot` -> `default:copper_lump`
-- If `moreores` mod is present:
-  - Registers additional dusts: `tin_dust`, `silver_dust`, `mithril_dust`
-  - Adds shapeless recipes for each: `moreores:<metal>_lump` -> `<metal>_dust`
-  - Adds cooking recipes: `moreores:<metal>_ingot` -> `moreores:<metal>_lump`
+## How to use
 
-### crucible.lua
-- Registers five nodes:
-  - `minetest_lava_crucible:lava_soil`
-  - `minetest_lava_crucible:lava_crucible` (cold)
-  - `minetest_lava_crucible:lava_crucible_hot` (lava adjacent, input has items)
-  - `minetest_lava_crucible:lava_crucible_hot_done` (lava adjacent, input empty, output has items)
-  - `minetest_lava_crucible:lava_crucible_hot_empty` (lava adjacent, fully empty)
+1. **Craft a crucible** using clay lumps and ore dust (see Crafting below)
+2. **Place it** next to a lava source or flowing lava block
+3. **Add stone** by punching the crucible while holding any stone-group item, or drag items into the input slot via the GUI (right-click)
+4. **Wait** — after one conversion interval, the crucible will begin converting stone to lava soil automatically
+5. **Collect** lava soil (and any ore dust bonuses) from the output slots via the GUI
 
-#### `lava_soil`
-- Animated tile texture `lava_soil.png`
-- Belongs to group `cracky = 1`
-- Stack size: 99
+The crucible is **owner-locked**: only the player who placed it can open the GUI, add input, or take output. The owner's name is shown in the infotext.
 
-#### `lava_crucible` (and hot variants)
-- Custom node box shape representing a crucible
-- Has two internal inventory lists:
-  - `input` (size 1) - for stone items to be processed
-  - `output` (size 4) - for processed lava_soil
-- Inventory callbacks prevent putting items into the output slot
-- `on_construct` initializes metadata and both inventory lists
-- `on_rightclick` opens a GUI formspec showing:
-  - Input slot
-  - Output row (4 slots)
-  - Player inventory for easy item transfer
-- `on_punch`:
-  - if the player is holding any item in group `stone`
-  - adds the stone to the input slot (up to stack capacity)
-  - removes the stone from the player's inventory
-  - provides feedback if input slot is full
+---
 
-#### Node states
-The crucible automatically swaps between four visual states:
+## Tiers
+
+Three tiers of crucible can be crafted, each visually distinct in height:
+
+| Tier | Node | Inputs | Soil outputs | Dust slots | Height |
+|---|---|---|---|---|---|
+| Single | `lava_crucible` | 1 | 1 | `#dust_table` | Half |
+| Double | `lava_crucible_double` | 2 | 2 | `#dust_table × 2` | Three-quarter |
+| Quad | `lava_crucible_quad` | 4 | 4 | `#dust_table × 4` | Full |
+
+Higher tiers process one item per input slot per conversion tick, so a quad crucible converts up to 4 stones per interval.
+
+When input is present, the crucible's node box gains a fill slab that makes the contents visually apparent.
+
+---
+
+## Crafting
+
+**Single crucible** — clay bowl shape with ore dust centre:
+
+```
+clay  ·    clay
+clay  dust clay
+·     clay  ·
+```
+
+**Double crucible** — combine two singles side by side:
+
+```
+single  single
+```
+
+**Quad crucible** — combine two doubles side by side:
+
+```
+double  double
+```
+
+---
+
+## Node states
+
+Each tier has four visual states that update automatically:
+
 | State | Condition |
 |---|---|
-| `lava_crucible` | no adjacent lava — cold, dark texture |
-| `lava_crucible_hot` | lava adjacent + input has items — animated boiling lava top, `light_source=10` |
-| `lava_crucible_hot_done` | lava adjacent + input empty + output has items — pixelated lava soil top with mineral particles, `light_source=7` |
-| `lava_crucible_hot_empty` | lava adjacent + fully empty — glowing empty basin, `light_source=7` |
-
-#### ABM behavior
-- Runs on all four crucible variants every 10 seconds
-- Only triggers when the crucible has a lava neighbor:
-  - `default:lava_flowing`
-  - `default:lava_source`
-- Each tick:
-  - Checks if input contains stone-group items
-  - Converts **one item** from the input to lava_soil
-  - Adds that one lava_soil to the output (if space available)
-  - If output is full, waits without consuming input
-  - Updates the visual state after each conversion
-
-#### Crafting
-- Crucible recipe:
-  - uses `default:clay_lump` and `group:mineral_dust`
-  - output is `minetest_lava_crucible:lava_crucible`
+| Cold (dark) | No adjacent lava |
+| Hot — processing (`light_source=10`, animated top, filled bowl) | Lava adjacent + input has items |
+| Hot — done (`light_source=7`) | Lava adjacent + input empty + output has items |
+| Hot — empty (`light_source=7`) | Lava adjacent + fully empty |
 
 ---
 
-## How to use the mod
+## Conversion behaviour
 
-1. **Craft a crucible** using clay lumps and mineral dust
-2. **Place the crucible** adjacent to lava (flowing or source)
-3. **Add stone items** by punching the crucible while holding stone or dragging stone items into the input in the GUI
-4. **Open the GUI** by right-clicking the crucible to monitor progress
-5. **Retrieve processed lava_soil** by dragging from the output slot to your inventory
-6. **Conversion happens automatically** every 10 seconds when lava is nearby
-
----
-
-## Behavior summary
-
-- The mod provides a stone-to-lava_soil transformation system
-- Input method: punch crucible with stone items or drag them to the input via GUI
-- Processing: **one item converted every 10 seconds** when adjacent to lava; output holds up to 4 stacks
-- Output: lava_soil stored in 4 output slots, accessible via GUI
-- Visual feedback: crucible top texture changes to reflect current state (cold / processing / done / empty-hot)
+- Conversion is driven by a **node timer** started when input is added (via punch or GUI) while lava is adjacent
+- There is a full conversion interval delay before the **first** conversion — items are not processed instantly
+- The timer restarts automatically after each conversion as long as input remains
+- If the soil output is full, the timer keeps firing but no input is consumed until space frees up
+- An **ABM** also monitors crucibles at the conversion interval: if lava appears next to a crucible that already has input, it starts the timer
 
 ---
 
-## Notes and possible issues
-- Conversion requires lava adjacency (flowing or source blocks)
-- Input slot holds 1 stack (up to 99 items); output holds 4 stacks
-- The mod defines `copper_dust` by default; with `moreores` mod installed, additional dusts (`tin_dust`, `silver_dust`, `mithril_dust`) are available
-- Conversion logic accepts any item in group `stone`
-- Conversion rate: 1 item per 10 seconds
+## Ore dust bonus
+
+Each conversion has a configurable chance to also produce a random weighted ore dust in the dust output slots:
+
+| Dust | Weight | Requires |
+|---|---|---|
+| Iron dust | 40 | — |
+| Copper dust | 30 | — |
+| Gold dust | 8 | — |
+| Diamond dust | 1 | — |
+| Tin dust | 20 | `moreores` |
+| Silver dust | 5 | `moreores` |
+| Mithril dust | 2 | `moreores` |
+
+Dust items are provided by the companion **`ore_dust`** mod.
+
+---
+
+## Configuration (minetest.conf)
+
+| Setting | Default | Description |
+|---|---|---|
+| `lava_crucible_conversion_interval` | `10.0` | Seconds between conversions |
+| `lava_crucible_dust_chance` | `0.5` | Probability (0–1) of a dust bonus per conversion |
+
+---
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `init.lua` | Loads `crucible.lua` and `metal_dust.lua` |
+| `crucible.lua` | All node definitions, inventory logic, ABM, timer, recipes |
+| `metal_dust.lua` | Stub (dust items moved to `ore_dust` mod) |
+| `mod.conf` | Mod metadata and dependency declarations |
+| `textures/` | All crucible and lava soil textures |
 
 ---
 
@@ -134,3 +129,4 @@ The crucible automatically swaps between four visual states:
 - When you throw stone in lava (no crucible involved) you sometimes get some mineral dust (randomly selected) that floats to the top of the lava and you can grab
 - Add user-locking so no one can steal your stuff
 - Add a nether crucible that acts like a nether chest so that each player has their own inventory in the same crucible
+- Add support for compressed stone - would generate nuggets (or shards) instead of dust
