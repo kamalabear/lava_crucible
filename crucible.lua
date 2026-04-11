@@ -108,16 +108,96 @@ local function has_adjacent_lava(pos)
     return false
 end
 
-local function crucible_input_empty(meta)
-    local inv = meta:get_inventory()
+local function is_ender_crucible_node(nodename)
+    return nodename:find("lava_crucible_ender") ~= nil
+end
+
+local dust_table
+local mod_storage = minetest.get_mod_storage()
+local ender_users_seen = {}
+
+local function save_ender_users_seen()
+    local users = {}
+    for playername, _ in pairs(ender_users_seen) do
+        table.insert(users, playername)
+    end
+    mod_storage:set_string("ender_users_seen", minetest.serialize(users))
+end
+
+do
+    local raw_users = mod_storage:get_string("ender_users_seen")
+    if raw_users and raw_users ~= "" then
+        local ok, users = pcall(minetest.deserialize, raw_users)
+        if ok and type(users) == "table" then
+            for _, playername in ipairs(users) do
+                if type(playername) == "string" and playername ~= "" then
+                    ender_users_seen[playername] = true
+                end
+            end
+        end
+    end
+end
+
+local function mark_ender_user(playername)
+    if playername and playername ~= "" and not ender_users_seen[playername] then
+        ender_users_seen[playername] = true
+        save_ender_users_seen()
+    end
+end
+
+local function serialize_inv_list(inv, listname)
+    local out = {}
+    for i = 1, inv:get_size(listname) do
+        out[i] = inv:get_stack(listname, i):to_string()
+    end
+    return out
+end
+
+local function save_ender_inventory(playername, inv)
+    if not playername or playername == "" or not inv then
+        return
+    end
+
+    local payload = {
+        input = serialize_inv_list(inv, "input"),
+        soil_output = serialize_inv_list(inv, "soil_output"),
+        dust_output = serialize_inv_list(inv, "dust_output"),
+    }
+
+    mod_storage:set_string("ender_inv:" .. playername, minetest.serialize(payload))
+end
+
+local function load_ender_inventory(playername, inv)
+    local raw = mod_storage:get_string("ender_inv:" .. playername)
+    if not raw or raw == "" then
+        return
+    end
+
+    local ok, payload = pcall(minetest.deserialize, raw)
+    if not ok or type(payload) ~= "table" then
+        return
+    end
+
+    local list_names = {"input", "soil_output", "dust_output"}
+    for _, listname in ipairs(list_names) do
+        local list = payload[listname]
+        if type(list) == "table" then
+            for i = 1, inv:get_size(listname) do
+                local stack_str = list[i] or ""
+                inv:set_stack(listname, i, ItemStack(stack_str))
+            end
+        end
+    end
+end
+
+local function inventory_input_empty(inv)
     for i = 1, inv:get_size("input") do
         if not inv:get_stack("input", i):is_empty() then return false end
     end
     return true
 end
 
-local function crucible_output_has_items(meta)
-    local inv = meta:get_inventory()
+local function inventory_output_has_items(inv)
     for i = 1, inv:get_size("soil_output") do
         if not inv:get_stack("soil_output", i):is_empty() then return true end
     end
@@ -125,6 +205,69 @@ local function crucible_output_has_items(meta)
         if not inv:get_stack("dust_output", i):is_empty() then return true end
     end
     return false
+end
+
+local function get_ender_inventory(playername)
+    if not playername or playername == "" then
+        return nil
+    end
+
+    mark_ender_user(playername)
+
+    local inv_name = "lava_crucible:ender_" .. playername
+    local inv = minetest.get_inventory({type = "detached", name = inv_name})
+    if not inv then
+        inv = minetest.create_detached_inventory(inv_name, {
+            on_put = function(_, listname, index, stack, player)
+                local v = minetest.get_inventory({type = "detached", name = inv_name})
+                if v then
+                    save_ender_inventory(playername, v)
+                end
+            end,
+            on_take = function(_, listname, index, stack, player)
+                local v = minetest.get_inventory({type = "detached", name = inv_name})
+                if v then
+                    save_ender_inventory(playername, v)
+                end
+            end,
+            on_move = function(_, from_list, from_index, to_list, to_index, count, player)
+                local v = minetest.get_inventory({type = "detached", name = inv_name})
+                if v then
+                    save_ender_inventory(playername, v)
+                end
+            end,
+        })
+        inv:set_size("input", 1)
+        inv:set_size("soil_output", 1)
+        inv:set_size("dust_output", #dust_table)
+        load_ender_inventory(playername, inv)
+    end
+
+    return inv
+end
+
+local function get_ender_inventory_state(playername)
+    local inv = get_ender_inventory(playername)
+    if not inv then
+        return false, false
+    end
+
+    return not inventory_input_empty(inv), inventory_output_has_items(inv)
+end
+
+local function get_processing_inventory(node, meta)
+    if is_ender_crucible_node(node.name) then
+        return nil
+    end
+    return meta:get_inventory()
+end
+
+local function crucible_input_empty(meta)
+    return inventory_input_empty(meta:get_inventory())
+end
+
+local function crucible_output_has_items(meta)
+    return inventory_output_has_items(meta:get_inventory())
 end
 
 local function crucible_has_contents(meta)
@@ -136,13 +279,30 @@ local function update_crucible_state(pos)
     local node = minetest.get_node(pos)
     local meta = minetest.get_meta(pos)
     local lava = has_adjacent_lava(pos)
-    local input_empty = crucible_input_empty(meta)
-    local output_full = crucible_output_has_items(meta)
+    local is_ender = is_ender_crucible_node(node.name)
+
+    local input_empty = true
+    local output_full = false
+
+    if is_ender then
+        local active_player = meta:get_string("ender_user")
+        local any_input, any_output = get_ender_inventory_state(active_player)
+        input_empty = not any_input
+        output_full = any_output
+    else
+        local inv = get_processing_inventory(node, meta)
+        if inv then
+            input_empty = inventory_input_empty(inv)
+            output_full = inventory_output_has_items(inv)
+        end
+    end
 
     local is_quad = node.name:find("_quad") ~= nil
     local is_double = node.name:find("_double") ~= nil
     local prefix
-    if is_quad then
+    if is_ender then
+        prefix = "lava_crucible:lava_crucible_ender"
+    elseif is_quad then
         prefix = "lava_crucible:lava_crucible_quad"
     elseif is_double then
         prefix = "lava_crucible:lava_crucible_double"
@@ -177,6 +337,11 @@ local function is_valid_crucible_input(itemname)
 end
 
 local function collect_dropped_stone(pos)
+    local node = minetest.get_node(pos)
+    if is_ender_crucible_node(node.name) then
+        return
+    end
+
     local meta = minetest.get_meta(pos)
     local inv = meta:get_inventory()
     local inserted_any = false
@@ -215,8 +380,58 @@ local function collect_dropped_stone(pos)
     end
 end
 
+local function refresh_ender_user_from_nearby_player(pos)
+    local node = minetest.get_node(pos)
+    if not is_ender_crucible_node(node.name) then
+        return
+    end
+
+    local nearest_name
+    local nearest_dist2
+    local search_pos = {x = pos.x, y = pos.y + 0.5, z = pos.z}
+    for _, obj in ipairs(minetest.get_objects_inside_radius(search_pos, 3.0)) do
+        if obj:is_player() then
+            local pname = obj:get_player_name()
+            if pname and pname ~= "" then
+                local ppos = obj:get_pos()
+                local dx = ppos.x - pos.x
+                local dy = ppos.y - pos.y
+                local dz = ppos.z - pos.z
+                local dist2 = dx * dx + dy * dy + dz * dz
+                if not nearest_dist2 or dist2 < nearest_dist2 then
+                    nearest_dist2 = dist2
+                    nearest_name = pname
+                end
+            end
+        end
+    end
+
+    if not nearest_name then
+        return
+    end
+
+    local meta = minetest.get_meta(pos)
+    local current = meta:get_string("ender_user")
+    if nearest_name ~= current then
+        meta:set_string("ender_user", nearest_name)
+    end
+
+    mark_ender_user(nearest_name)
+    update_crucible_state(pos)
+
+    if has_adjacent_lava(pos) then
+        local any_input, _ = get_ender_inventory_state(nearest_name)
+        if any_input then
+            local timer = minetest.get_node_timer(pos)
+            if not timer:is_started() then
+                timer:start(conversion_interval)
+            end
+        end
+    end
+end
+
 -- Weighted dust table: higher weight = more common
-local dust_table = {
+dust_table = {
     {item = "ore_dust:iron_dust",    weight = 40},
     {item = "ore_dust:copper_dust",  weight = 30},
     {item = "ore_dust:gold_dust",    weight = 8},
@@ -567,6 +782,190 @@ hot_crucible_done.tiles = {
 hot_crucible_done.light_source = 7
 minetest.register_node("lava_crucible:lava_crucible_hot_done", hot_crucible_done)
 
+local crucible_ender_common = clone_table(crucible_common)
+crucible_ender_common.description = "Ender Lava Crucible"
+crucible_ender_common.after_place_node = function(pos, placer, itemstack, pointed_thing)
+    local meta = minetest.get_meta(pos)
+    meta:set_string("ender_user", "")
+    meta:set_string("infotext", "Ender Lava Crucible")
+end
+crucible_ender_common.on_construct = function(pos)
+    local meta = minetest.get_meta(pos)
+    meta:set_string("ender_user", "")
+    meta:set_string("infotext", "Ender Lava Crucible")
+end
+crucible_ender_common.on_punch = function(pos, node, puncher, pointed_thing)
+    if not puncher or not puncher:is_player() then
+        return
+    end
+
+    local wielded_item = puncher:get_wielded_item()
+    if wielded_item:is_empty() or not is_valid_crucible_input(wielded_item:get_name()) then
+        return
+    end
+
+    local pname = puncher:get_player_name()
+    mark_ender_user(pname)
+    local inv = get_ender_inventory(pname)
+    if not inv then
+        return
+    end
+
+    local item_to_add = ItemStack(wielded_item:get_name() .. " " .. wielded_item:get_count())
+    local leftover = inv:add_item("input", item_to_add)
+    if leftover:get_count() == item_to_add:get_count() then
+        minetest.chat_send_player(pname, "The input slot is full!")
+        return
+    end
+
+    puncher:get_inventory():remove_item("main", wielded_item)
+    local meta = minetest.get_meta(pos)
+    meta:set_string("ender_user", pname)
+    save_ender_inventory(pname, inv)
+    update_crucible_state(pos)
+
+    if has_adjacent_lava(pos) then
+        local timer = minetest.get_node_timer(pos)
+        if not timer:is_started() then
+            timer:start(conversion_interval)
+        end
+    end
+end
+crucible_ender_common.on_timer = function(pos, elapsed)
+    if not has_adjacent_lava(pos) then return false end
+
+    local blocked = false
+    local any_input = false
+
+    for playername, _ in pairs(ender_users_seen) do
+        local inv = get_ender_inventory(playername)
+        if inv and not inventory_input_empty(inv) then
+            any_input = true
+            local _, slot_blocked = process_input_stack(inv, 1)
+            blocked = blocked or slot_blocked
+            save_ender_inventory(playername, inv)
+        end
+    end
+
+    update_crucible_state(pos)
+
+    if not any_input then
+        return false
+    end
+    if blocked then return true end
+
+    for playername, _ in pairs(ender_users_seen) do
+        local inv = get_ender_inventory(playername)
+        if inv and not inventory_input_empty(inv) then
+            return true
+        end
+    end
+
+    return false
+end
+crucible_ender_common.on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
+    if not clicker or not clicker:is_player() then
+        return
+    end
+
+    local pname = clicker:get_player_name()
+    mark_ender_user(pname)
+    local inv_name = "lava_crucible:ender_" .. pname
+    local inv = get_ender_inventory(pname)
+    if not inv then
+        return
+    end
+
+    local meta = minetest.get_meta(pos)
+    meta:set_string("ender_user", pname)
+
+    local dust_cols = math.min(#dust_table, 8)
+    local dust_rows = math.ceil(#dust_table / dust_cols)
+    local formspec = "size[9,8.5]" ..
+        "bgcolor[#080808BB;true]" ..
+        "background9[0,0;9,8.5;gui_formbg.png;true;10]" ..
+        "label[0.5,0.3;Ender Lava Crucible]" ..
+        "label[0.5,1;Input:]" ..
+        "list[detached:" .. inv_name .. ";input;0.5,1.5;1,1;]" ..
+        "label[2.5,0.3;Soil Output:]" ..
+        "list[detached:" .. inv_name .. ";soil_output;2.5,1;1,1;]" ..
+        "label[0.5,2.8;Ore Dust:]" ..
+        "list[detached:" .. inv_name .. ";dust_output;0.5,3.3;" .. dust_cols .. "," .. dust_rows .. ";]" ..
+        "label[0.5,4.5;Player Inventory:]" ..
+        "list[current_player;main;0.5,5;8,3;]" ..
+        "listring[current_player;main]" ..
+        "listring[detached:" .. inv_name .. ";input]" ..
+        "listring[current_player;main]" ..
+        "listring[detached:" .. inv_name .. ";soil_output]" ..
+        "listring[current_player;main]" ..
+        "listring[detached:" .. inv_name .. ";dust_output]"
+    minetest.show_formspec(clicker:get_player_name(), "lava_crucible:crucible_gui", formspec)
+
+    update_crucible_state(pos)
+    if has_adjacent_lava(pos) and not inventory_input_empty(inv) then
+        local timer = minetest.get_node_timer(pos)
+        if not timer:is_started() then
+            timer:start(conversion_interval)
+        end
+    end
+end
+
+local cold_ender_crucible = clone_table(crucible_ender_common)
+cold_ender_crucible.tiles = {
+    "crucible_top.png^[colorize:#49305f:85",
+    "crucible_bottom.png^[colorize:#49305f:85",
+    "crucible_side.png^[colorize:#49305f:85",
+    "crucible_side.png^[colorize:#49305f:85",
+    "crucible_side.png^[colorize:#49305f:85",
+    "crucible_side.png^[colorize:#49305f:85",
+}
+minetest.register_node("lava_crucible:lava_crucible_ender", cold_ender_crucible)
+
+local hot_ender_crucible = clone_table(crucible_ender_common)
+hot_ender_crucible.tiles = {
+    {
+        name = "crucible_top_hot.png^[colorize:#3f245f:75",
+        animation = {
+            type = "vertical_frames",
+            aspect_w = 128,
+            aspect_h = 128,
+            length = 4.5,
+        },
+    },
+    "crucible_bottom_hot.png^[colorize:#3f245f:75",
+    "crucible_side_hot.png^[colorize:#3f245f:75",
+    "crucible_side_hot.png^[colorize:#3f245f:75",
+    "crucible_side_hot.png^[colorize:#3f245f:75",
+    "crucible_side_hot.png^[colorize:#3f245f:75",
+}
+hot_ender_crucible.light_source = 10
+hot_ender_crucible.node_box = { type = "fixed", fixed = cbox_filled }
+minetest.register_node("lava_crucible:lava_crucible_ender_hot", hot_ender_crucible)
+
+local hot_ender_crucible_empty = clone_table(crucible_ender_common)
+hot_ender_crucible_empty.tiles = {
+    "crucible_top_hot_empty.png^[colorize:#3f245f:75",
+    "crucible_bottom_hot.png^[colorize:#3f245f:75",
+    "crucible_side_hot.png^[colorize:#3f245f:75",
+    "crucible_side_hot.png^[colorize:#3f245f:75",
+    "crucible_side_hot.png^[colorize:#3f245f:75",
+    "crucible_side_hot.png^[colorize:#3f245f:75",
+}
+hot_ender_crucible_empty.light_source = 7
+minetest.register_node("lava_crucible:lava_crucible_ender_hot_empty", hot_ender_crucible_empty)
+
+local hot_ender_crucible_done = clone_table(crucible_ender_common)
+hot_ender_crucible_done.tiles = {
+    "crucible_top_hot_done.png^[colorize:#3f245f:75",
+    "crucible_bottom_hot.png^[colorize:#3f245f:75",
+    "crucible_side_hot.png^[colorize:#3f245f:75",
+    "crucible_side_hot.png^[colorize:#3f245f:75",
+    "crucible_side_hot.png^[colorize:#3f245f:75",
+    "crucible_side_hot.png^[colorize:#3f245f:75",
+}
+hot_ender_crucible_done.light_source = 7
+minetest.register_node("lava_crucible:lava_crucible_ender_hot_done", hot_ender_crucible_done)
+
 local cold_crucible_double = clone_table(crucible_double_common)
 cold_crucible_double.tiles = {
     "crucible_top.png",
@@ -752,6 +1151,10 @@ local active_crucible_nodes = {
     "lava_crucible:lava_crucible_hot",
     "lava_crucible:lava_crucible_hot_done",
     "lava_crucible:lava_crucible_hot_empty",
+    "lava_crucible:lava_crucible_ender",
+    "lava_crucible:lava_crucible_ender_hot",
+    "lava_crucible:lava_crucible_ender_hot_done",
+    "lava_crucible:lava_crucible_ender_hot_empty",
     "lava_crucible:lava_crucible_double",
     "lava_crucible:lava_crucible_double_hot",
     "lava_crucible:lava_crucible_double_hot_done",
@@ -770,8 +1173,19 @@ minetest.register_abm({
     catch_up = true,
     action = function(pos, node, active_object_count, active_object_count_wider)
         update_crucible_state(pos)
-        local meta = minetest.get_meta(pos)
-        if not crucible_input_empty(meta) then
+        local should_start = false
+
+        if is_ender_crucible_node(node.name) then
+            local meta = minetest.get_meta(pos)
+            local any_input, _ = get_ender_inventory_state(meta:get_string("ender_user"))
+            should_start = any_input
+        else
+            local meta = minetest.get_meta(pos)
+            local inv = get_processing_inventory(node, meta)
+            should_start = inv and not inventory_input_empty(inv)
+        end
+
+        if should_start then
             local timer = minetest.get_node_timer(pos)
             if not timer:is_started() then
                 timer:start(conversion_interval)
@@ -786,7 +1200,11 @@ minetest.register_abm({
     chance = 1,
     catch_up = false,
     action = function(pos, node, active_object_count, active_object_count_wider)
-        collect_dropped_stone(pos)
+        if is_ender_crucible_node(node.name) then
+            refresh_ender_user_from_nearby_player(pos)
+        else
+            collect_dropped_stone(pos)
+        end
     end,
 })
 
@@ -800,6 +1218,17 @@ minetest.register_craft({
     type = "shapeless",
     output = "lava_crucible:clay_graphite",
     recipe = {"default:clay_lump", "default:coal_lump"},
+})
+
+minetest.register_craftitem("lava_crucible:obsidian_clay", {
+    description = "Obsidian Clay",
+    inventory_image = "clay_graphite.png^[colorize:#3a1f4f:95",
+})
+
+minetest.register_craft({
+    type = "shapeless",
+    output = "lava_crucible:obsidian_clay",
+    recipe = {"default:clay_lump", "ore_dust:obsidian_dust"},
 })
 
 -- Uncured Crucible: shaped from Clay Graphite, must be baked before use
@@ -838,6 +1267,40 @@ minetest.register_craft({
     type = "cooking",
     output = "lava_crucible:lava_crucible 1",
     recipe = "lava_crucible:uncured_crucible",
+    cooktime = 15,
+})
+
+minetest.register_node("lava_crucible:uncured_ender_crucible", {
+    description = "Uncured Ender Crucible",
+    drawtype = "nodebox",
+    paramtype = "light",
+    is_ground_content = false,
+    groups = {cracky = 1},
+    tiles = {
+        "crucible_uncured_top.png^[colorize:#49305f:85",
+        "crucible_uncured_bottom.png^[colorize:#49305f:85",
+        "crucible_uncured_side.png^[colorize:#49305f:85",
+        "crucible_uncured_side.png^[colorize:#49305f:85",
+        "crucible_uncured_side.png^[colorize:#49305f:85",
+        "crucible_uncured_side.png^[colorize:#49305f:85",
+    },
+    node_box = { type = "fixed", fixed = cbox },
+})
+
+minetest.register_craft({
+    type = "shaped",
+    output = "lava_crucible:uncured_ender_crucible 1",
+    recipe = {
+        {"lava_crucible:obsidian_clay", "",                         "lava_crucible:obsidian_clay"},
+        {"lava_crucible:obsidian_clay", "",                         "lava_crucible:obsidian_clay"},
+        {"",                             "lava_crucible:obsidian_clay", ""},
+    }
+})
+
+minetest.register_craft({
+    type = "cooking",
+    output = "lava_crucible:lava_crucible_ender 1",
+    recipe = "lava_crucible:uncured_ender_crucible",
     cooktime = 15,
 })
 

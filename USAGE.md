@@ -51,7 +51,9 @@ item  ·     item
 ·     item   ·
 ```
 
-**Step 1 — Clay Graphite** (shapeless): `clay_lump` + `coal_lump` → 2× `clay_graphite`
+**Step 1 — Clay Graphite** (shapeless): `clay_lump` + `coal_lump` → `clay_graphite`
+
+**Step 1b — Obsidian Clay** (shapeless): `clay_lump` + `obsidian_dust` → `obsidian_clay`
 
 **Step 2 — Uncured Crucible** — cup shape using `clay_graphite`:
 
@@ -62,6 +64,20 @@ graphite  ·         graphite
 ```
 
 **Step 3 — Single Crucible** — bake `uncured_crucible` in a furnace (15 seconds)
+
+---
+
+**Ender path (small variant)**
+
+**Step 2E — Uncured Ender Crucible** — same cup shape, but using `obsidian_clay`:
+
+```
+obs.clay  ·         obs.clay
+obs.clay  ·         obs.clay
+·         obs.clay  ·
+```
+
+**Step 3E — Ender Lava Crucible** — bake `uncured_ender_crucible` in a furnace (15 seconds)
 
 ---
 
@@ -99,6 +115,8 @@ The crucible top texture changes automatically to reflect its current state:
 | Glowing empty basin | Hot and empty — lava adjacent but nothing to process - add stone to get started |
 | Animated lava top, bright glow, filled bowl | Processing — lava adjacent and input loaded |
 | Lava soil top, dim glow | Done — input exhausted, output has items to collect |
+
+For Ender Lava Crucibles, visuals use a global aggregate view: the four-stage display is based on combined ender inventory activity across users.
 
 ---
 

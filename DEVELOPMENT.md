@@ -22,7 +22,9 @@ Raw materials and intermediates are a mix of craftitems and nodes. The full chai
 | Item | Registered name | How obtained |
 |---|---|---|
 | Clay Graphite (craftitem) | `lava_crucible:clay_graphite` | Shapeless: `clay_lump` + `coal_lump` → 1× |
+| Obsidian Clay (craftitem) | `lava_crucible:obsidian_clay` | Shapeless: `clay_lump` + `ore_dust:obsidian_dust` → 1× |
 | Uncured Crucible (node) | `lava_crucible:uncured_crucible` | Cup shape (5×) of `clay_graphite` |
+| Uncured Ender Crucible (node) | `lava_crucible:uncured_ender_crucible` | Cup shape (5×) of `obsidian_clay` |
 | Uncured Double Crucible (node) | `lava_crucible:uncured_double_crucible` | Cup shape (5×) of `uncured_crucible` |
 | Uncured Quad Crucible (node) | `lava_crucible:uncured_quad_crucible` | Cup shape (5×) of `uncured_double_crucible` |
 
@@ -31,6 +33,7 @@ Each uncured item is then cooked in a furnace to produce the corresponding node:
 | Input | Output | Cook time |
 |---|---|---|
 | `uncured_crucible` | `lava_crucible` | 15 s |
+| `uncured_ender_crucible` | `lava_crucible_ender` | 15 s |
 | `uncured_double_crucible` | `lava_crucible_double` | 20 s |
 | `uncured_quad_crucible` | `lava_crucible_quad` | 25 s |
 
@@ -53,6 +56,10 @@ All crucible nodes follow the pattern:
 ```
 lava_crucible:lava_crucible[_<tier>][_<state>]
 ```
+
+The ender small variant uses `lava_crucible:lava_crucible_ender` plus the same state suffixes (`_hot`, `_hot_empty`, `_hot_done`).
+
+Ender visuals use global aggregate state because node visuals are shared while inventory is per-player. The in-world ender node therefore uses combined activity across known ender inventories to drive all four visual stages.
 
 | Tier suffix | Tier |
 |---|---|
@@ -222,5 +229,3 @@ The `ore_dust` mod (companion repository: `kamalabear/ore_dust`) owns all dust i
 ## Future enhancement ideas
 
 - **Lava-throw dust:** when stone is thrown directly into lava (no crucible), occasionally spawn a mineral dust item that floats to the surface for the player to grab
-- **Nether crucible:** acts like a nether chest — each player has their own private inventory in the same physical node
-- **Additional compressed inputs:** support desert/sandstone compressed variants with configurable output pools
