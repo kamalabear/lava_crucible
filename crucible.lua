@@ -236,10 +236,12 @@ hot_crucible_done.tiles = {
 hot_crucible_done.light_source = 7
 minetest.register_node("minetest_lava_crucible:lava_crucible_hot_done", hot_crucible_done)
 
+local conversion_interval = tonumber(minetest.settings:get("lava_crucible_conversion_interval")) or 10.0
+
 minetest.register_abm({
     nodenames = {"minetest_lava_crucible:lava_crucible", "minetest_lava_crucible:lava_crucible_hot", "minetest_lava_crucible:lava_crucible_hot_done", "minetest_lava_crucible:lava_crucible_hot_empty"},
     neighbors = {"default:lava_flowing", "default:lava_source"},
-    interval = 10.0,
+    interval = conversion_interval,
     chance = 1,
     catch_up = true,
     action = function(pos, node, active_object_count, active_object_count_wider)
