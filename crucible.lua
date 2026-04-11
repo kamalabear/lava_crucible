@@ -554,7 +554,7 @@ crucible_quad_common.on_timer = function(pos, elapsed)
         if not input_stack:is_empty() and minetest.get_item_group(input_stack:get_name(), "stone") > 0 then
             local leftover = inv:add_item("soil_output", ItemStack("minetest_lava_crucible:lava_soil 1"))
             if leftover:get_count() == 0 then
-                input_stack:take_item(1)
+                input_stack:take_item(1) 1
                 inv:set_stack("input", i, input_stack)
                 if math.random() < dust_chance then
                     inv:add_item("dust_output", ItemStack(pick_random_dust() .. " 1"))
@@ -688,18 +688,43 @@ minetest.register_abm({
     end,
 })
 
--- Define the recipe to create a crucible:
--- clay_lump, none, clay_lump
--- clay_lump, metal_dust, clay_lump
--- none, clay_lump, none
+-- Clay Graphite: clay mixed with coal, used as the body material for crucibles
+minetest.register_craftitem("minetest_lava_crucible:clay_graphite", {
+    description = "Clay Graphite",
+    inventory_image = "clay_graphite.png",
+})
+
+minetest.register_craft({
+    type = "shapeless",
+    output = "minetest_lava_crucible:clay_graphite 2",
+    recipe = {"default:clay_lump", "default:coal_lump"},
+})
+
+-- Uncured Crucible: shaped from Clay Graphite, must be baked before use
+minetest.register_craftitem("minetest_lava_crucible:uncured_crucible", {
+    description = "Uncured Crucible",
+    inventory_image = "uncured_crucible.png",
+})
+
+-- clay_graphite, none,          clay_graphite
+-- clay_graphite, none,  clay_graphite
+-- none,          clay_graphite, none
 minetest.register_craft({
     type = "shaped",
-    output = "minetest_lava_crucible:lava_crucible 1",
+    output = "minetest_lava_crucible:uncured_crucible 1",
     recipe = {
-        {"default:clay_lump","","default:clay_lump"},
-        {"default:clay_lump","group:mineral_dust","default:clay_lump"},
-        {"","default:clay_lump",""}
+        {"minetest_lava_crucible:clay_graphite", "",                          "minetest_lava_crucible:clay_graphite"},
+        {"minetest_lava_crucible:clay_graphite", "",        "minetest_lava_crucible:clay_graphite"},
+        {"",                                     "minetest_lava_crucible:clay_graphite", ""},
     }
+})
+
+-- Bake the uncured crucible in a furnace to produce a usable crucible
+minetest.register_craft({
+    type = "cooking",
+    output = "minetest_lava_crucible:lava_crucible 1",
+    recipe = "minetest_lava_crucible:uncured_crucible",
+    cooktime = 15,
 })
 
 minetest.register_craft({
