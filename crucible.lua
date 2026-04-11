@@ -54,7 +54,7 @@ local cbox_quad_filled = {
 }
 
 -- Define lava soil
-minetest.register_node("minetest_lava_crucible:lava_soil", {
+minetest.register_node("lava_crucible:lava_soil", {
     description = "Lava Soil",
     is_ground_content = true,
     groups = { cracky = 1 },
@@ -77,7 +77,7 @@ minetest.register_node("minetest_lava_crucible:lava_soil", {
 function convert_stone_to_lava_soil(itemstack)
     -- Check if the item is a stone
     if minetest.get_item_group(itemstack:get_name(), "stone") > 0 then
-        return ItemStack("minetest_lava_crucible:lava_soil " .. itemstack:get_count())
+        return ItemStack("lava_crucible:lava_soil " .. itemstack:get_count())
     end
     return nil
 end
@@ -143,11 +143,11 @@ local function update_crucible_state(pos)
     local is_double = node.name:find("_double") ~= nil
     local prefix
     if is_quad then
-        prefix = "minetest_lava_crucible:lava_crucible_quad"
+        prefix = "lava_crucible:lava_crucible_quad"
     elseif is_double then
-        prefix = "minetest_lava_crucible:lava_crucible_double"
+        prefix = "lava_crucible:lava_crucible_double"
     else
-        prefix = "minetest_lava_crucible:lava_crucible"
+        prefix = "lava_crucible:lava_crucible"
     end
     local target
     if not lava then
@@ -295,7 +295,7 @@ local crucible_common = {
         local input_stack = inv:get_stack("input", 1)
         if input_stack:is_empty() then return false end
         if minetest.get_item_group(input_stack:get_name(), "stone") <= 0 then return false end
-        local leftover = inv:add_item("soil_output", ItemStack("minetest_lava_crucible:lava_soil 1"))
+        local leftover = inv:add_item("soil_output", ItemStack("lava_crucible:lava_soil 1"))
         if leftover:get_count() > 0 then
             return true  -- soil_output full, retry after interval
         end
@@ -335,7 +335,7 @@ local crucible_common = {
             "listring[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";soil_output]" ..
             "listring[current_player;main]" ..
             "listring[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";dust_output]"
-        minetest.show_formspec(clicker:get_player_name(), "minetest_lava_crucible:crucible_gui", formspec)
+        minetest.show_formspec(clicker:get_player_name(), "lava_crucible:crucible_gui", formspec)
     end,
 }
 
@@ -365,7 +365,7 @@ crucible_double_common.on_timer = function(pos, elapsed)
     for i = 1, inv:get_size("input") do
         local input_stack = inv:get_stack("input", i)
         if not input_stack:is_empty() and minetest.get_item_group(input_stack:get_name(), "stone") > 0 then
-            local leftover = inv:add_item("soil_output", ItemStack("minetest_lava_crucible:lava_soil 1"))
+            local leftover = inv:add_item("soil_output", ItemStack("lava_crucible:lava_soil 1"))
             if leftover:get_count() == 0 then
                 input_stack:take_item(1)
                 inv:set_stack("input", i, input_stack)
@@ -411,7 +411,7 @@ crucible_double_common.on_rightclick = function(pos, node, clicker, itemstack, p
         "listring[nodemeta:" .. pnode .. ";soil_output]" ..
         "listring[current_player;main]" ..
         "listring[nodemeta:" .. pnode .. ";dust_output]"
-    minetest.show_formspec(clicker:get_player_name(), "minetest_lava_crucible:crucible_gui", formspec)
+    minetest.show_formspec(clicker:get_player_name(), "lava_crucible:crucible_gui", formspec)
 end
 
 local cold_crucible = clone_table(crucible_common)
@@ -423,7 +423,7 @@ cold_crucible.tiles = {
     "crucible_side.png",
     "crucible_side.png",
 }
-minetest.register_node("minetest_lava_crucible:lava_crucible", cold_crucible)
+minetest.register_node("lava_crucible:lava_crucible", cold_crucible)
 
 local hot_crucible = clone_table(crucible_common)
 hot_crucible.tiles = {
@@ -444,7 +444,7 @@ hot_crucible.tiles = {
 }
 hot_crucible.light_source = 10
 hot_crucible.node_box = { type = "fixed", fixed = cbox_filled }
-minetest.register_node("minetest_lava_crucible:lava_crucible_hot", hot_crucible)
+minetest.register_node("lava_crucible:lava_crucible_hot", hot_crucible)
 
 local hot_crucible_empty = clone_table(crucible_common)
 hot_crucible_empty.tiles = {
@@ -456,7 +456,7 @@ hot_crucible_empty.tiles = {
     "crucible_side_hot.png",
 }
 hot_crucible_empty.light_source = 7
-minetest.register_node("minetest_lava_crucible:lava_crucible_hot_empty", hot_crucible_empty)
+minetest.register_node("lava_crucible:lava_crucible_hot_empty", hot_crucible_empty)
 
 local hot_crucible_done = clone_table(crucible_common)
 hot_crucible_done.tiles = {
@@ -468,7 +468,7 @@ hot_crucible_done.tiles = {
     "crucible_side_hot.png",
 }
 hot_crucible_done.light_source = 7
-minetest.register_node("minetest_lava_crucible:lava_crucible_hot_done", hot_crucible_done)
+minetest.register_node("lava_crucible:lava_crucible_hot_done", hot_crucible_done)
 
 local cold_crucible_double = clone_table(crucible_double_common)
 cold_crucible_double.tiles = {
@@ -479,7 +479,7 @@ cold_crucible_double.tiles = {
     "crucible_side.png",
     "crucible_side.png",
 }
-minetest.register_node("minetest_lava_crucible:lava_crucible_double", cold_crucible_double)
+minetest.register_node("lava_crucible:lava_crucible_double", cold_crucible_double)
 
 local hot_crucible_double = clone_table(crucible_double_common)
 hot_crucible_double.tiles = {
@@ -500,7 +500,7 @@ hot_crucible_double.tiles = {
 }
 hot_crucible_double.light_source = 10
 hot_crucible_double.node_box = { type = "fixed", fixed = cbox_double_filled }
-minetest.register_node("minetest_lava_crucible:lava_crucible_double_hot", hot_crucible_double)
+minetest.register_node("lava_crucible:lava_crucible_double_hot", hot_crucible_double)
 
 local hot_crucible_double_empty = clone_table(crucible_double_common)
 hot_crucible_double_empty.tiles = {
@@ -512,7 +512,7 @@ hot_crucible_double_empty.tiles = {
     "crucible_side_hot.png",
 }
 hot_crucible_double_empty.light_source = 7
-minetest.register_node("minetest_lava_crucible:lava_crucible_double_hot_empty", hot_crucible_double_empty)
+minetest.register_node("lava_crucible:lava_crucible_double_hot_empty", hot_crucible_double_empty)
 
 local hot_crucible_double_done = clone_table(crucible_double_common)
 hot_crucible_double_done.tiles = {
@@ -524,7 +524,7 @@ hot_crucible_double_done.tiles = {
     "crucible_side_hot.png",
 }
 hot_crucible_double_done.light_source = 7
-minetest.register_node("minetest_lava_crucible:lava_crucible_double_hot_done", hot_crucible_double_done)
+minetest.register_node("lava_crucible:lava_crucible_double_hot_done", hot_crucible_double_done)
 
 -- Quad Lava Crucible: 4 input slots, 4 soil output slots, 4x dust slots
 local crucible_quad_common = clone_table(crucible_common)
@@ -552,7 +552,7 @@ crucible_quad_common.on_timer = function(pos, elapsed)
     for i = 1, inv:get_size("input") do
         local input_stack = inv:get_stack("input", i)
         if not input_stack:is_empty() and minetest.get_item_group(input_stack:get_name(), "stone") > 0 then
-            local leftover = inv:add_item("soil_output", ItemStack("minetest_lava_crucible:lava_soil 1"))
+            local leftover = inv:add_item("soil_output", ItemStack("lava_crucible:lava_soil 1"))
             if leftover:get_count() == 0 then
                 input_stack:take_item(1)
                 inv:set_stack("input", i, input_stack)
@@ -598,7 +598,7 @@ crucible_quad_common.on_rightclick = function(pos, node, clicker, itemstack, poi
         "listring[nodemeta:" .. pnode .. ";soil_output]" ..
         "listring[current_player;main]" ..
         "listring[nodemeta:" .. pnode .. ";dust_output]"
-    minetest.show_formspec(clicker:get_player_name(), "minetest_lava_crucible:crucible_gui", formspec)
+    minetest.show_formspec(clicker:get_player_name(), "lava_crucible:crucible_gui", formspec)
 end
 
 local cold_crucible_quad = clone_table(crucible_quad_common)
@@ -610,7 +610,7 @@ cold_crucible_quad.tiles = {
     "crucible_side.png",
     "crucible_side.png",
 }
-minetest.register_node("minetest_lava_crucible:lava_crucible_quad", cold_crucible_quad)
+minetest.register_node("lava_crucible:lava_crucible_quad", cold_crucible_quad)
 
 local hot_crucible_quad = clone_table(crucible_quad_common)
 hot_crucible_quad.tiles = {
@@ -631,7 +631,7 @@ hot_crucible_quad.tiles = {
 }
 hot_crucible_quad.light_source = 10
 hot_crucible_quad.node_box = { type = "fixed", fixed = cbox_quad_filled }
-minetest.register_node("minetest_lava_crucible:lava_crucible_quad_hot", hot_crucible_quad)
+minetest.register_node("lava_crucible:lava_crucible_quad_hot", hot_crucible_quad)
 
 local hot_crucible_quad_empty = clone_table(crucible_quad_common)
 hot_crucible_quad_empty.tiles = {
@@ -643,7 +643,7 @@ hot_crucible_quad_empty.tiles = {
     "crucible_side_hot.png",
 }
 hot_crucible_quad_empty.light_source = 7
-minetest.register_node("minetest_lava_crucible:lava_crucible_quad_hot_empty", hot_crucible_quad_empty)
+minetest.register_node("lava_crucible:lava_crucible_quad_hot_empty", hot_crucible_quad_empty)
 
 local hot_crucible_quad_done = clone_table(crucible_quad_common)
 hot_crucible_quad_done.tiles = {
@@ -655,22 +655,22 @@ hot_crucible_quad_done.tiles = {
     "crucible_side_hot.png",
 }
 hot_crucible_quad_done.light_source = 7
-minetest.register_node("minetest_lava_crucible:lava_crucible_quad_hot_done", hot_crucible_quad_done)
+minetest.register_node("lava_crucible:lava_crucible_quad_hot_done", hot_crucible_quad_done)
 
 minetest.register_abm({
     nodenames = {
-        "minetest_lava_crucible:lava_crucible",
-        "minetest_lava_crucible:lava_crucible_hot",
-        "minetest_lava_crucible:lava_crucible_hot_done",
-        "minetest_lava_crucible:lava_crucible_hot_empty",
-        "minetest_lava_crucible:lava_crucible_double",
-        "minetest_lava_crucible:lava_crucible_double_hot",
-        "minetest_lava_crucible:lava_crucible_double_hot_done",
-        "minetest_lava_crucible:lava_crucible_double_hot_empty",
-        "minetest_lava_crucible:lava_crucible_quad",
-        "minetest_lava_crucible:lava_crucible_quad_hot",
-        "minetest_lava_crucible:lava_crucible_quad_hot_done",
-        "minetest_lava_crucible:lava_crucible_quad_hot_empty",
+        "lava_crucible:lava_crucible",
+        "lava_crucible:lava_crucible_hot",
+        "lava_crucible:lava_crucible_hot_done",
+        "lava_crucible:lava_crucible_hot_empty",
+        "lava_crucible:lava_crucible_double",
+        "lava_crucible:lava_crucible_double_hot",
+        "lava_crucible:lava_crucible_double_hot_done",
+        "lava_crucible:lava_crucible_double_hot_empty",
+        "lava_crucible:lava_crucible_quad",
+        "lava_crucible:lava_crucible_quad_hot",
+        "lava_crucible:lava_crucible_quad_hot_done",
+        "lava_crucible:lava_crucible_quad_hot_empty",
     },
     neighbors = {"default:lava_flowing", "default:lava_source"},
     interval = conversion_interval,
@@ -689,19 +689,19 @@ minetest.register_abm({
 })
 
 -- Clay Graphite: clay mixed with coal, used as the body material for crucibles
-minetest.register_craftitem("minetest_lava_crucible:clay_graphite", {
+minetest.register_craftitem("lava_crucible:clay_graphite", {
     description = "Clay Graphite",
     inventory_image = "clay_graphite.png",
 })
 
 minetest.register_craft({
     type = "shapeless",
-    output = "minetest_lava_crucible:clay_graphite",
+    output = "lava_crucible:clay_graphite",
     recipe = {"default:clay_lump", "default:coal_lump"},
 })
 
 -- Uncured Crucible: shaped from Clay Graphite, must be baked before use
-minetest.register_node("minetest_lava_crucible:uncured_crucible", {
+minetest.register_node("lava_crucible:uncured_crucible", {
     description = "Uncured Crucible",
     drawtype = "nodebox",
     paramtype = "light",
@@ -723,24 +723,24 @@ minetest.register_node("minetest_lava_crucible:uncured_crucible", {
 -- none,          clay_graphite, none
 minetest.register_craft({
     type = "shaped",
-    output = "minetest_lava_crucible:uncured_crucible 1",
+    output = "lava_crucible:uncured_crucible 1",
     recipe = {
-        {"minetest_lava_crucible:clay_graphite", "",                          "minetest_lava_crucible:clay_graphite"},
-        {"minetest_lava_crucible:clay_graphite", "",        "minetest_lava_crucible:clay_graphite"},
-        {"",                                     "minetest_lava_crucible:clay_graphite", ""},
+        {"lava_crucible:clay_graphite", "",                          "lava_crucible:clay_graphite"},
+        {"lava_crucible:clay_graphite", "",        "lava_crucible:clay_graphite"},
+        {"",                                     "lava_crucible:clay_graphite", ""},
     }
 })
 
 -- Bake the uncured crucible in a furnace to produce a usable crucible
 minetest.register_craft({
     type = "cooking",
-    output = "minetest_lava_crucible:lava_crucible 1",
-    recipe = "minetest_lava_crucible:uncured_crucible",
+    output = "lava_crucible:lava_crucible 1",
+    recipe = "lava_crucible:uncured_crucible",
     cooktime = 15,
 })
 
 -- Uncured Double Crucible: 5 uncured crucibles in a cup shape, then baked
-minetest.register_node("minetest_lava_crucible:uncured_double_crucible", {
+minetest.register_node("lava_crucible:uncured_double_crucible", {
     description = "Uncured Double Crucible",
     drawtype = "nodebox",
     paramtype = "light",
@@ -759,23 +759,23 @@ minetest.register_node("minetest_lava_crucible:uncured_double_crucible", {
 
 minetest.register_craft({
     type = "shaped",
-    output = "minetest_lava_crucible:uncured_double_crucible 1",
+    output = "lava_crucible:uncured_double_crucible 1",
     recipe = {
-        {"minetest_lava_crucible:uncured_crucible", "",                                   "minetest_lava_crucible:uncured_crucible"},
-        {"minetest_lava_crucible:uncured_crucible", "",                                   "minetest_lava_crucible:uncured_crucible"},
-        {"",                                        "minetest_lava_crucible:uncured_crucible", ""},
+        {"lava_crucible:uncured_crucible", "",                                   "lava_crucible:uncured_crucible"},
+        {"lava_crucible:uncured_crucible", "",                                   "lava_crucible:uncured_crucible"},
+        {"",                                        "lava_crucible:uncured_crucible", ""},
     }
 })
 
 minetest.register_craft({
     type = "cooking",
-    output = "minetest_lava_crucible:lava_crucible_double 1",
-    recipe = "minetest_lava_crucible:uncured_double_crucible",
+    output = "lava_crucible:lava_crucible_double 1",
+    recipe = "lava_crucible:uncured_double_crucible",
     cooktime = 20,
 })
 
 -- Uncured Quad Crucible: 5 uncured double crucibles in a cup shape, then baked
-minetest.register_node("minetest_lava_crucible:uncured_quad_crucible", {
+minetest.register_node("lava_crucible:uncured_quad_crucible", {
     description = "Uncured Quad Crucible",
     drawtype = "nodebox",
     paramtype = "light",
@@ -794,24 +794,49 @@ minetest.register_node("minetest_lava_crucible:uncured_quad_crucible", {
 
 minetest.register_craft({
     type = "shaped",
-    output = "minetest_lava_crucible:uncured_quad_crucible 1",
+    output = "lava_crucible:uncured_quad_crucible 1",
     recipe = {
-        {"minetest_lava_crucible:uncured_double_crucible", "",                                          "minetest_lava_crucible:uncured_double_crucible"},
-        {"minetest_lava_crucible:uncured_double_crucible", "",                                          "minetest_lava_crucible:uncured_double_crucible"},
-        {"",                                               "minetest_lava_crucible:uncured_double_crucible", ""},
+        {"lava_crucible:uncured_double_crucible", "",                                          "lava_crucible:uncured_double_crucible"},
+        {"lava_crucible:uncured_double_crucible", "",                                          "lava_crucible:uncured_double_crucible"},
+        {"",                                               "lava_crucible:uncured_double_crucible", ""},
     }
 })
 
 minetest.register_craft({
     type = "cooking",
-    output = "minetest_lava_crucible:lava_crucible_quad 1",
-    recipe = "minetest_lava_crucible:uncured_quad_crucible",
+    output = "lava_crucible:lava_crucible_quad 1",
+    recipe = "lava_crucible:uncured_quad_crucible",
     cooktime = 25,
 })
 
+-- Backward compatibility: map old item/node names to the new lava_crucible namespace
+local legacy_names = {
+    "lava_soil",
+    "lava_crucible",
+    "lava_crucible_hot",
+    "lava_crucible_hot_empty",
+    "lava_crucible_hot_done",
+    "lava_crucible_double",
+    "lava_crucible_double_hot",
+    "lava_crucible_double_hot_empty",
+    "lava_crucible_double_hot_done",
+    "lava_crucible_quad",
+    "lava_crucible_quad_hot",
+    "lava_crucible_quad_hot_empty",
+    "lava_crucible_quad_hot_done",
+    "clay_graphite",
+    "uncured_crucible",
+    "uncured_double_crucible",
+    "uncured_quad_crucible",
+}
+
+for _, name in ipairs(legacy_names) do
+    minetest.register_alias("minetest_lava_crucible:" .. name, "lava_crucible:" .. name)
+end
+
 -- Formspec handler for the crucible GUI
 minetest.register_on_player_receive_fields(function(player, formname, fields)
-    if formname == "minetest_lava_crucible:crucible_gui" then
+    if formname == "lava_crucible:crucible_gui" then
         -- Formspec is closed, nothing action needed
         return true
     end
@@ -833,7 +858,7 @@ end)
 -- **** Example of getting image from another mod ****
 -- local bucket_image = minetest.registered_craftitems["bucket:bucket_empty"].inventory_image
 
--- minetest.register_node("minetest_lava_crucible:crucible", {
+-- minetest.register_node("lava_crucible:crucible", {
 --     description = "Lava Crucible",
 --     tiles = {
 --         bucket_image,

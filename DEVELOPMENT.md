@@ -21,10 +21,10 @@ All crafted items are registered as `craftitem` (not nodes). The full chain:
 
 | Item | Registered name | How obtained |
 |---|---|---|
-| Clay Graphite | `minetest_lava_crucible:clay_graphite` | Shapeless: `clay_lump` + `coal_lump` → 2× |
-| Uncured Crucible | `minetest_lava_crucible:uncured_crucible` | Cup shape (5×) of `clay_graphite` |
-| Uncured Double Crucible | `minetest_lava_crucible:uncured_double_crucible` | Cup shape (5×) of `uncured_crucible` |
-| Uncured Quad Crucible | `minetest_lava_crucible:uncured_quad_crucible` | Cup shape (5×) of `uncured_double_crucible` |
+| Clay Graphite | `lava_crucible:clay_graphite` | Shapeless: `clay_lump` + `coal_lump` → 2× |
+| Uncured Crucible | `lava_crucible:uncured_crucible` | Cup shape (5×) of `clay_graphite` |
+| Uncured Double Crucible | `lava_crucible:uncured_double_crucible` | Cup shape (5×) of `uncured_crucible` |
+| Uncured Quad Crucible | `lava_crucible:uncured_quad_crucible` | Cup shape (5×) of `uncured_double_crucible` |
 
 Each uncured item is then cooked in a furnace to produce the corresponding node:
 
@@ -51,7 +51,7 @@ Inventory images: `clay_graphite.png`, `uncured_crucible.png` (shared by all thr
 All crucible nodes follow the pattern:
 
 ```
-minetest_lava_crucible:lava_crucible[_<tier>][_<state>]
+lava_crucible:lava_crucible[_<tier>][_<state>]
 ```
 
 | Tier suffix | Tier |
@@ -117,9 +117,9 @@ has adjacent lava?
 ```
 
 The prefix is derived from the current node name:
-- contains `_quad` → `minetest_lava_crucible:lava_crucible_quad`
-- contains `_double` → `minetest_lava_crucible:lava_crucible_double`
-- otherwise → `minetest_lava_crucible:lava_crucible`
+- contains `_quad` → `lava_crucible:lava_crucible_quad`
+- contains `_double` → `lava_crucible:lava_crucible_double`
+- otherwise → `lava_crucible:lava_crucible`
 
 `crucible_input_empty(meta)` iterates all input slots. `crucible_output_has_items(meta)` iterates all soil and dust slots. Both are slot-count-agnostic and work across all tiers.
 
