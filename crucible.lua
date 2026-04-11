@@ -1,11 +1,56 @@
 -- Define crucible
 
+-- Single crucible: half height (walls reach y=0.0)
 local cbox = {
-    {-0.5,  0.5, -0.5, -0.4, -0.4, -0.5}, -- North
-    { 0.5,  0.5, -0.5,  0.4, -0.4, -0.5}, -- South
-    {-0.5,  0.5, -0.5, -0.5, -0.4,  0.4}, -- East
-    { 0.5,  0.5, -0.5,  0.5, -0.4,  0.4}, -- West
-    {-0.5, -0.5, -0.5,  0.4, -0.4,  0.4}, -- Bottom
+    {-0.5, -0.5, -0.5,  0.5, -0.4,  0.5},  -- Bottom
+    {-0.5, -0.4, -0.5, -0.4,  0.0,  0.5},  -- West wall
+    { 0.4, -0.4, -0.5,  0.5,  0.0,  0.5},  -- East wall
+    {-0.4, -0.4, -0.5,  0.4,  0.0, -0.4},  -- North wall
+    {-0.4, -0.4,  0.4,  0.4,  0.0,  0.5},  -- South wall
+}
+
+-- Double crucible: three-quarter height (walls reach y=0.25)
+local cbox_double = {
+    {-0.5, -0.5, -0.5,  0.5, -0.4,  0.5},
+    {-0.5, -0.4, -0.5, -0.4,  0.25,  0.5},
+    { 0.4, -0.4, -0.5,  0.5,  0.25,  0.5},
+    {-0.4, -0.4, -0.5,  0.4,  0.25, -0.4},
+    {-0.4, -0.4,  0.4,  0.4,  0.25,  0.5},
+}
+
+-- Quad crucible: full height (walls reach y=0.5)
+local cbox_quad = {
+    {-0.5, -0.5, -0.5,  0.5, -0.4,  0.5},
+    {-0.5, -0.4, -0.5, -0.4,  0.5,  0.5},
+    { 0.4, -0.4, -0.5,  0.5,  0.5,  0.5},
+    {-0.4, -0.4, -0.5,  0.4,  0.5, -0.4},
+    {-0.4, -0.4,  0.4,  0.4,  0.5,  0.5},
+}
+
+-- Filled variants: same walls + interior fill slab
+local cbox_filled = {
+    {-0.5, -0.5, -0.5,  0.5, -0.4,  0.5},
+    {-0.5, -0.4, -0.5, -0.4,  0.0,  0.5},
+    { 0.4, -0.4, -0.5,  0.5,  0.0,  0.5},
+    {-0.4, -0.4, -0.5,  0.4,  0.0, -0.4},
+    {-0.4, -0.4,  0.4,  0.4,  0.0,  0.5},
+    {-0.4, -0.4, -0.4,  0.4, -0.05, 0.4},  -- fill
+}
+local cbox_double_filled = {
+    {-0.5, -0.5, -0.5,  0.5, -0.4,  0.5},
+    {-0.5, -0.4, -0.5, -0.4,  0.25,  0.5},
+    { 0.4, -0.4, -0.5,  0.5,  0.25,  0.5},
+    {-0.4, -0.4, -0.5,  0.4,  0.25, -0.4},
+    {-0.4, -0.4,  0.4,  0.4,  0.25,  0.5},
+    {-0.4, -0.4, -0.4,  0.4,  0.20, 0.4},  -- fill
+}
+local cbox_quad_filled = {
+    {-0.5, -0.5, -0.5,  0.5, -0.4,  0.5},
+    {-0.5, -0.4, -0.5, -0.4,  0.5,  0.5},
+    { 0.4, -0.4, -0.5,  0.5,  0.5,  0.5},
+    {-0.4, -0.4, -0.5,  0.4,  0.5, -0.4},
+    {-0.4, -0.4,  0.4,  0.4,  0.5,  0.5},
+    {-0.4, -0.4, -0.4,  0.4,  0.45, 0.4},  -- fill
 }
 
 -- Define lava soil
@@ -157,6 +202,8 @@ local crucible_common = {
     description = "A crucible that is used by placing it over lava",
     is_ground_content = false,
     groups = {cracky = 1},
+    drawtype = "nodebox",
+    paramtype = "light",
     node_box = {
         type = "fixed",
         fixed = cbox,
@@ -295,6 +342,7 @@ local crucible_common = {
 -- Double Lava Crucible: 2 input slots, 2 soil output slots, double dust slots
 local crucible_double_common = clone_table(crucible_common)
 crucible_double_common.description = "Double Lava Crucible"
+crucible_double_common.node_box = { type = "fixed", fixed = cbox_double }
 crucible_double_common.after_place_node = function(pos, placer, itemstack, pointed_thing)
     if placer and placer:is_player() then
         local meta = minetest.get_meta(pos)
@@ -395,6 +443,7 @@ hot_crucible.tiles = {
     "crucible_side_hot.png",
 }
 hot_crucible.light_source = 10
+hot_crucible.node_box = { type = "fixed", fixed = cbox_filled }
 minetest.register_node("minetest_lava_crucible:lava_crucible_hot", hot_crucible)
 
 local hot_crucible_empty = clone_table(crucible_common)
@@ -450,6 +499,7 @@ hot_crucible_double.tiles = {
     "crucible_side_hot.png",
 }
 hot_crucible_double.light_source = 10
+hot_crucible_double.node_box = { type = "fixed", fixed = cbox_double_filled }
 minetest.register_node("minetest_lava_crucible:lava_crucible_double_hot", hot_crucible_double)
 
 local hot_crucible_double_empty = clone_table(crucible_double_common)
@@ -479,6 +529,7 @@ minetest.register_node("minetest_lava_crucible:lava_crucible_double_hot_done", h
 -- Quad Lava Crucible: 4 input slots, 4 soil output slots, 4x dust slots
 local crucible_quad_common = clone_table(crucible_common)
 crucible_quad_common.description = "Quad Lava Crucible"
+crucible_quad_common.node_box = { type = "fixed", fixed = cbox_quad }
 crucible_quad_common.after_place_node = function(pos, placer, itemstack, pointed_thing)
     if placer and placer:is_player() then
         local meta = minetest.get_meta(pos)
@@ -579,6 +630,7 @@ hot_crucible_quad.tiles = {
     "crucible_side_hot.png",
 }
 hot_crucible_quad.light_source = 10
+hot_crucible_quad.node_box = { type = "fixed", fixed = cbox_quad_filled }
 minetest.register_node("minetest_lava_crucible:lava_crucible_quad_hot", hot_crucible_quad)
 
 local hot_crucible_quad_empty = clone_table(crucible_quad_common)
