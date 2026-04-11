@@ -65,21 +65,30 @@ end
 
 local function crucible_has_contents(meta)
     local inv = meta:get_inventory()
-    return not inv:get_stack("input", 1):is_empty() or not inv:get_stack("output", 1):is_empty()
-end
-
-local function should_be_hot(pos)
-    local meta = minetest.get_meta(pos)
-    return crucible_has_contents(meta) and has_adjacent_lava(pos)
+    if not inv:get_stack("input", 1):is_empty() then return true end
+    for i = 1, inv:get_size("output") do
+        if not inv:get_stack("output", i):is_empty() then return true end
+    end
+    return false
 end
 
 local function update_crucible_state(pos)
     local node = minetest.get_node(pos)
-    local hot = should_be_hot(pos)
-    if hot and node.name ~= "minetest_lava_crucible:lava_crucible_hot" then
-        minetest.swap_node(pos, {name = "minetest_lava_crucible:lava_crucible_hot", param2 = node.param2})
-    elseif not hot and node.name ~= "minetest_lava_crucible:lava_crucible" then
-        minetest.swap_node(pos, {name = "minetest_lava_crucible:lava_crucible", param2 = node.param2})
+    local meta = minetest.get_meta(pos)
+    local lava = has_adjacent_lava(pos)
+    local contents = crucible_has_contents(meta)
+
+    local target
+    if not lava then
+        target = "minetest_lava_crucible:lava_crucible"
+    elseif contents then
+        target = "minetest_lava_crucible:lava_crucible_hot"
+    else
+        target = "minetest_lava_crucible:lava_crucible_hot_empty"
+    end
+
+    if node.name ~= target then
+        minetest.swap_node(pos, {name = target, param2 = node.param2})
     end
 end
 
@@ -174,7 +183,15 @@ minetest.register_node("minetest_lava_crucible:lava_crucible", cold_crucible)
 
 local hot_crucible = clone_table(crucible_common)
 hot_crucible.tiles = {
-    "crucible_top_hot.png",
+    {
+        name = "crucible_top_hot.png",
+        animation = {
+            type = "vertical_frames",
+            aspect_w = 128,
+            aspect_h = 128,
+            length = 4.5,
+        },
+    },
     "crucible_bottom_hot.png",
     "crucible_side_hot.png",
     "crucible_side_hot.png",
@@ -184,8 +201,20 @@ hot_crucible.tiles = {
 hot_crucible.light_source = 10
 minetest.register_node("minetest_lava_crucible:lava_crucible_hot", hot_crucible)
 
+local hot_crucible_empty = clone_table(crucible_common)
+hot_crucible_empty.tiles = {
+    "crucible_top_hot_empty.png",
+    "crucible_bottom_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+}
+hot_crucible_empty.light_source = 7
+minetest.register_node("minetest_lava_crucible:lava_crucible_hot_empty", hot_crucible_empty)
+
 minetest.register_abm({
-    nodenames = {"minetest_lava_crucible:lava_crucible", "minetest_lava_crucible:lava_crucible_hot"},
+    nodenames = {"minetest_lava_crucible:lava_crucible", "minetest_lava_crucible:lava_crucible_hot", "minetest_lava_crucible:lava_crucible_hot_empty"},
     neighbors = {"default:lava_flowing", "default:lava_source"},
     interval = 10.0,
     chance = 1,
