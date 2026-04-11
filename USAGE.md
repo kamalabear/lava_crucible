@@ -29,7 +29,7 @@ The crucible is **owner-locked**: only the player who placed it can open it, add
 
 ## Sizes
 
-Three crucible sizes are available, with the larger sizes crafted by combining smaller crucibles. Larger sizes have more slots and converts faster.
+Three crucible sizes are available in both regular and Ender variants, with the larger sizes crafted by combining smaller crucibles. Larger sizes have more slots and convert faster.
 
 | Size | Input slots | Soil output slots | Dust slots | Visual height |
 |---|---|---|---|---|
@@ -37,7 +37,7 @@ Three crucible sizes are available, with the larger sizes crafted by combining s
 | **Double** | 2 | 2 | 8 (14 with `moreores`) | Three-quarter node |
 | **Quad** | 4 | 4 | 16 (28 with `moreores`) | Full node |
 
-Each size also has a filled bowl appearance when input is present, so you can tell at a glance whether it is loaded.
+Each size also has a filled bowl appearance when input is present, so you can tell at a glance whether it is loaded. Ender variants are tinted purple and share the same three sizes.
 
 ---
 
@@ -81,6 +81,30 @@ obs.clay  ·         obs.clay
 
 ---
 
+**Uncured Double Ender Crucible** — cup shape using 5× `uncured_ender_crucible`:
+
+```
+ndr.ender  ·           unc.ender
+unc.ender  ·           unc.ender
+·          unc.ender   ·
+```
+
+**Double Ender Crucible** — bake `uncured_ender_double_crucible` in a furnace (20 seconds)
+
+---
+
+**Uncured Quad Ender Crucible** — cup shape using 5× `uncured_ender_double_crucible`:
+
+```
+unc.e.dbl  ·            unc.e.dbl
+unc.e.dbl  ·            unc.e.dbl
+·          unc.e.dbl    ·
+```
+
+**Quad Ender Crucible** — bake `uncured_ender_quad_crucible` in a furnace (25 seconds)
+
+---
+
 **Uncured Double Crucible** — cup shape using 5× `uncured_crucible`:
 
 ```
@@ -116,7 +140,7 @@ The crucible top texture changes automatically to reflect its current state:
 | Animated lava top, bright glow, filled bowl | Processing — lava adjacent and input loaded |
 | Lava soil top, dim glow | Done — input exhausted, output has items to collect |
 
-For Ender Lava Crucibles, visuals use a global aggregate view: the four-stage display is based on combined ender inventory activity across users.
+For Ender Lava Crucibles, the visual state reflects the **nearest player's** per-player inventory. Each player has their own independent ender inventory shared across all ender crucible nodes of the same tier — just like an ender chest. The crucible's four-stage display updates automatically as you approach.
 
 ---
 

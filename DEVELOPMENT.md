@@ -26,7 +26,9 @@ Raw materials and intermediates are a mix of craftitems and nodes. The full chai
 | Uncured Crucible (node) | `lava_crucible:uncured_crucible` | Cup shape (5×) of `clay_graphite` |
 | Uncured Ender Crucible (node) | `lava_crucible:uncured_ender_crucible` | Cup shape (5×) of `obsidian_clay` |
 | Uncured Double Crucible (node) | `lava_crucible:uncured_double_crucible` | Cup shape (5×) of `uncured_crucible` |
+| Uncured Double Ender Crucible (node) | `lava_crucible:uncured_ender_double_crucible` | Cup shape (5×) of `uncured_ender_crucible` |
 | Uncured Quad Crucible (node) | `lava_crucible:uncured_quad_crucible` | Cup shape (5×) of `uncured_double_crucible` |
+| Uncured Quad Ender Crucible (node) | `lava_crucible:uncured_ender_quad_crucible` | Cup shape (5×) of `uncured_ender_double_crucible` |
 
 Each uncured item is then cooked in a furnace to produce the corresponding node:
 
@@ -35,7 +37,9 @@ Each uncured item is then cooked in a furnace to produce the corresponding node:
 | `uncured_crucible` | `lava_crucible` | 15 s |
 | `uncured_ender_crucible` | `lava_crucible_ender` | 15 s |
 | `uncured_double_crucible` | `lava_crucible_double` | 20 s |
+| `uncured_ender_double_crucible` | `lava_crucible_ender_double` | 20 s |
 | `uncured_quad_crucible` | `lava_crucible_quad` | 25 s |
+| `uncured_ender_quad_crucible` | `lava_crucible_ender_quad` | 25 s |
 
 The **cup shape** used for all three uncured recipes:
 
@@ -54,18 +58,20 @@ Uncured node textures: `crucible_uncured_top.png`, `crucible_uncured_side.png`, 
 All crucible nodes follow the pattern:
 
 ```
-lava_crucible:lava_crucible[_<tier>][_<state>]
+lava_crucible:lava_crucible[_ender][_<tier>][_<state>]
 ```
 
-The ender small variant uses `lava_crucible:lava_crucible_ender` plus the same state suffixes (`_hot`, `_hot_empty`, `_hot_done`).
+Ender variants insert `_ender` before the tier suffix. The double and quad ender variants use `lava_crucible:lava_crucible_ender_double` and `lava_crucible:lava_crucible_ender_quad` plus the same state suffixes.
 
-Ender visuals use global aggregate state because node visuals are shared while inventory is per-player. The in-world ender node therefore uses combined activity across known ender inventories to drive all four visual stages.
+Ender visuals use the nearest player's per-player ender inventory to drive the four visual stages. Each player has an independent detached inventory (name `lava_crucible:ender_<tier>_<player>` for double/quad, `lava_crucible:ender_<player>` for single) that is persistent across sessions via `mod_storage`.
 
 | Tier suffix | Tier |
 |---|---|
 | *(none)* | Single |
 | `_double` | Double |
 | `_quad` | Quad |
+
+Ender tiers combine both prefixes: `_ender`, `_ender_double`, `_ender_quad`.
 
 | State suffix | Condition |
 |---|---|
@@ -74,7 +80,7 @@ Ender visuals use global aggregate state because node visuals are shared while i
 | `_hot_empty` | Hot, input and output both empty |
 | `_hot_done` | Hot, input empty but output has items |
 
-Examples: `lava_crucible_hot`, `lava_crucible_double_hot_empty`, `lava_crucible_quad_hot_done`.
+Examples: `lava_crucible_hot`, `lava_crucible_double_hot_empty`, `lava_crucible_quad_hot_done`, `lava_crucible_ender_double_hot`, `lava_crucible_ender_quad_hot_done`.
 
 ---
 
@@ -102,11 +108,13 @@ Every crucible node has three inventory lists, sized at construction via `on_con
 
 | List | Single size | Double size | Quad size | Writable by player? |
 |---|---|---|---|---|
-| `input` | 1 | 2 | 4 | Yes (owner only) |
-| `soil_output` | 1 | 2 | 4 | Take only (owner only) |
-| `dust_output` | `#dust_table` | `#dust_table × 2` | `#dust_table × 4` | Take only (owner only) |
+| `input` | 1 | 2 | 4 | Yes (owner / ender: any player) |
+| `soil_output` | 1 | 2 | 4 | Take only |
+| `dust_output` | `#dust_table` | `#dust_table × 2` | `#dust_table × 4` | Take only |
 
-`allow_metadata_inventory_put` blocks puts into `soil_output` and `dust_output` entirely. All three `allow_*` callbacks also block non-owners from making any inventory change.
+For **regular** crucibles, `allow_metadata_inventory_put` blocks puts into `soil_output` and `dust_output` entirely, and all three `allow_*` callbacks also block non-owners.
+
+For **ender** crucibles, inventories are **detached** (not node-meta) — one per player per tier: `lava_crucible:ender_<player>` (single), `lava_crucible:ender_double_<player>` (double), `lava_crucible:ender_quad_<player>` (quad). On_put/on_take/on_move callbacks persist changes to `mod_storage`. There is no owner lock — any player can open any ender crucible to access their own inventory.
 
 ---
 
@@ -124,6 +132,9 @@ has adjacent lava?
 ```
 
 The prefix is derived from the current node name:
+- contains `lava_crucible_ender_quad` → `lava_crucible:lava_crucible_ender_quad`
+- contains `lava_crucible_ender_double` → `lava_crucible:lava_crucible_ender_double`
+- contains `lava_crucible_ender` (single) → `lava_crucible:lava_crucible_ender`
 - contains `_quad` → `lava_crucible:lava_crucible_quad`
 - contains `_double` → `lava_crucible:lava_crucible_double`
 - otherwise → `lava_crucible:lava_crucible`
@@ -171,7 +182,7 @@ Dropped item entities are also handled by a second ABM (`interval=1`) via `colle
 
 ### ABM
 
-Runs every `conversion_interval` seconds on all 12 crucible node variants. Its action:
+Runs every `conversion_interval` seconds on all **24** crucible node variants (4 states × 6 node types: single, ender-single, double, ender-double, quad, ender-quad). Its action:
 1. Calls `update_crucible_state(pos)`
 2. If `not crucible_input_empty(meta)` and timer not started → starts timer
 
