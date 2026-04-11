@@ -696,14 +696,26 @@ minetest.register_craftitem("minetest_lava_crucible:clay_graphite", {
 
 minetest.register_craft({
     type = "shapeless",
-    output = "minetest_lava_crucible:clay_graphite 2",
+    output = "minetest_lava_crucible:clay_graphite",
     recipe = {"default:clay_lump", "default:coal_lump"},
 })
 
 -- Uncured Crucible: shaped from Clay Graphite, must be baked before use
-minetest.register_craftitem("minetest_lava_crucible:uncured_crucible", {
+minetest.register_node("minetest_lava_crucible:uncured_crucible", {
     description = "Uncured Crucible",
-    inventory_image = "uncured_crucible.png",
+    drawtype = "nodebox",
+    paramtype = "light",
+    is_ground_content = false,
+    groups = {cracky = 1},
+    tiles = {
+        "crucible_uncured_top.png",
+        "crucible_uncured_bottom.png",
+        "crucible_uncured_side.png",
+        "crucible_uncured_side.png",
+        "crucible_uncured_side.png",
+        "crucible_uncured_side.png",
+    },
+    node_box = { type = "fixed", fixed = cbox },
 })
 
 -- clay_graphite, none,          clay_graphite
@@ -728,9 +740,21 @@ minetest.register_craft({
 })
 
 -- Uncured Double Crucible: 5 uncured crucibles in a cup shape, then baked
-minetest.register_craftitem("minetest_lava_crucible:uncured_double_crucible", {
+minetest.register_node("minetest_lava_crucible:uncured_double_crucible", {
     description = "Uncured Double Crucible",
-    inventory_image = "uncured_crucible.png",
+    drawtype = "nodebox",
+    paramtype = "light",
+    is_ground_content = false,
+    groups = {cracky = 1},
+    tiles = {
+        "crucible_uncured_top.png",
+        "crucible_uncured_bottom.png",
+        "crucible_uncured_side.png",
+        "crucible_uncured_side.png",
+        "crucible_uncured_side.png",
+        "crucible_uncured_side.png",
+    },
+    node_box = { type = "fixed", fixed = cbox_double },
 })
 
 minetest.register_craft({
@@ -751,9 +775,21 @@ minetest.register_craft({
 })
 
 -- Uncured Quad Crucible: 5 uncured double crucibles in a cup shape, then baked
-minetest.register_craftitem("minetest_lava_crucible:uncured_quad_crucible", {
+minetest.register_node("minetest_lava_crucible:uncured_quad_crucible", {
     description = "Uncured Quad Crucible",
-    inventory_image = "uncured_crucible.png",
+    drawtype = "nodebox",
+    paramtype = "light",
+    is_ground_content = false,
+    groups = {cracky = 1},
+    tiles = {
+        "crucible_uncured_top.png",
+        "crucible_uncured_bottom.png",
+        "crucible_uncured_side.png",
+        "crucible_uncured_side.png",
+        "crucible_uncured_side.png",
+        "crucible_uncured_side.png",
+    },
+    node_box = { type = "fixed", fixed = cbox_quad },
 })
 
 minetest.register_craft({
