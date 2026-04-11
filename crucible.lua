@@ -119,14 +119,20 @@ minetest.register_node("minetest_lava_crucible:lava_crucible", {
         local meta = minetest.get_meta(pos)
         
         -- Use raw coordinates for the nodemeta reference and add background images for visibility
-        local formspec = "size[6,4]" ..
+        local formspec = "size[9,7]" ..
             "label[0.5,0.3;Lava Crucible]" ..
             "label[0.5,1;Input:]" ..
             "image[0.5,1.5;1,1;default:gui_slot.png]" ..
             "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";input;0.5,1.5;1,1;0]" ..
             "label[3,1;Output:]" ..
             "image[3,1.5;1,1;default:gui_slot.png]" ..
-            "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";output;3,1.5;1,1;0]"
+            "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";output;3,1.5;1,1;0]" ..
+            "listring[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";input]" ..
+            "listring[current_player;main]" ..
+            "listring[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";output]" ..
+            "listring[current_player;main]" ..
+            "label[0.5,3;Player Inventory:]" ..
+            "list[current_player;main;0.5,3.5;8,3;]"
         
         minetest.show_formspec(clicker:get_player_name(), "minetest_lava_crucible:crucible_gui", formspec)
     end,
