@@ -9,9 +9,11 @@
 | `metal_dust.lua` | Stub file — dust items were moved to the `ore_dust` mod |
 | `mod.conf` | Mod name, display name, description, `depends`, `optional_depends` |
 | `settingtypes.txt` | Exposes `lava_crucible_conversion_interval` and `lava_crucible_dust_chance` to the Minetest settings UI |
-| `textures/` | All crucible and lava soil textures (cold/hot/done/empty variants, animated top) |
+| `textures/` | All crucible textures (cold/hot/done/empty variants, animated top). Lava soil texture is provided by the `volcanic_soil` mod. |
 
 **Companion mod:** `ore_dust` (separate repository) — defines all `ore_dust:*_dust` items and their crafting recipes. This mod declares `depends = ore_dust` in `mod.conf`.
+
+**Soil mod:** `volcanic_soil` — defines the lava soil node (`volcanic_soil:volcanic_soil`) that is output by the crucible when it processes stone. The crucible declares `depends = volcanic_soil` in `mod.conf`.
 
 **Optional integration:** `technic` can extend the crucible dust pool with selected ore-like technic dusts. Lava Crucible adds `mineral_dust = 1` to those selected technic items via `minetest.override_item()` at mod-load finalization time.
 

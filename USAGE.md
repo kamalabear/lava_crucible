@@ -8,7 +8,7 @@ The Lava Crucible processes stone into **lava soil** — a fertile, animated soi
 
 ## Dependencies
 
-- **Required mods:** `default`, `ore_dust`
+- **Required mods:** `default`, `ore_dust`, `volcanic_soil`
 - **Optional:** `moreores` — enables tin, silver, and mithril dust drops
 - **Optional:** `technic` — adds selected technic dusts to crucible output and makes those items behave as `mineral_dust`
 

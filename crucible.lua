@@ -53,31 +53,14 @@ local cbox_quad_filled = {
     {-0.4, -0.4, -0.4,  0.4,  0.45, 0.4},  -- fill
 }
 
--- Define lava soil
-minetest.register_node("lava_crucible:lava_soil", {
-    description = "Lava Soil",
-    is_ground_content = true,
-    groups = { cracky = 1 },
-    stack_max = 99,  -- Add this line to specify maximum stack size
-    tiles = {
-		{
-			name = "lava_soil.png",
-			backface_culling = false,
-			animation = {
-				type = "vertical_frames",
-				aspect_w = 16,
-				aspect_h = 16,
-				length = 6.0,
-			},
-		},
-    },
-})
+-- Lava soil node is now defined in the volcanic_soil mod
+-- lava_crucible outputs volcanic_soil:volcanic_soil from stone conversion
 
--- Function to convert stone to lava soil
+-- Function to convert stone to volcanic soil (now provided by volcanic_soil mod)
 function convert_stone_to_lava_soil(itemstack)
     -- Check if the item is a stone
     if minetest.get_item_group(itemstack:get_name(), "stone") > 0 then
-        return ItemStack("lava_crucible:lava_soil " .. itemstack:get_count())
+        return ItemStack("volcanic_soil:volcanic_soil " .. itemstack:get_count())
     end
     return nil
 end
@@ -611,7 +594,7 @@ local function process_input_stack(inv, slot)
         return false, false
     end
 
-    local leftover = inv:add_item("soil_output", ItemStack("lava_crucible:lava_soil " .. soil_count))
+    local leftover = inv:add_item("soil_output", ItemStack("volcanic_soil:volcanic_soil " .. soil_count))
     if leftover:get_count() > 0 then
         return false, true
     end

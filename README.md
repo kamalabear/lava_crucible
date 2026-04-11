@@ -8,7 +8,7 @@ Conversions have a chance to produce weighted mineral dust bonuses. The base poo
 
 ## Dependencies
 
-- **Required:** `default`, `ore_dust`
+- **Required:** `default`, `ore_dust`, `volcanic_soil` (provides the lava soil output node)
 - **Optional:** `moreores` (enables tin, silver, and mithril dust drops)
 - **Optional:** `technic` (adds selected technic mineral dusts and marks them as `mineral_dust` items for compatibility)
 
