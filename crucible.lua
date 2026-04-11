@@ -168,6 +168,45 @@ end
 local conversion_interval = tonumber(minetest.settings:get("lava_crucible_conversion_interval")) or 10.0
 local dust_chance = tonumber(minetest.settings:get("lava_crucible_dust_chance")) or 0.5
 
+local function collect_dropped_stone(pos)
+    local meta = minetest.get_meta(pos)
+    local inv = meta:get_inventory()
+    local inserted_any = false
+    local search_pos = {x = pos.x, y = pos.y + 0.6, z = pos.z}
+
+    for _, obj in ipairs(minetest.get_objects_inside_radius(search_pos, 0.9)) do
+        local ent = obj:get_luaentity()
+        if ent and ent.name == "__builtin:item" and ent.itemstring then
+            local stack = ItemStack(ent.itemstring)
+            if not stack:is_empty() and minetest.get_item_group(stack:get_name(), "stone") > 0 then
+                local leftover = inv:add_item("input", stack)
+                if leftover:get_count() < stack:get_count() then
+                    inserted_any = true
+                    if leftover:is_empty() then
+                        obj:remove()
+                    else
+                        if ent.set_item then
+                            ent:set_item(leftover:to_string())
+                        else
+                            ent.itemstring = leftover:to_string()
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    if inserted_any then
+        update_crucible_state(pos)
+        if has_adjacent_lava(pos) then
+            local timer = minetest.get_node_timer(pos)
+            if not timer:is_started() then
+                timer:start(conversion_interval)
+            end
+        end
+    end
+end
+
 -- Weighted dust table: higher weight = more common
 local dust_table = {
     {item = "ore_dust:iron_dust",    weight = 40},
@@ -657,21 +696,23 @@ hot_crucible_quad_done.tiles = {
 hot_crucible_quad_done.light_source = 7
 minetest.register_node("lava_crucible:lava_crucible_quad_hot_done", hot_crucible_quad_done)
 
+local active_crucible_nodes = {
+    "lava_crucible:lava_crucible",
+    "lava_crucible:lava_crucible_hot",
+    "lava_crucible:lava_crucible_hot_done",
+    "lava_crucible:lava_crucible_hot_empty",
+    "lava_crucible:lava_crucible_double",
+    "lava_crucible:lava_crucible_double_hot",
+    "lava_crucible:lava_crucible_double_hot_done",
+    "lava_crucible:lava_crucible_double_hot_empty",
+    "lava_crucible:lava_crucible_quad",
+    "lava_crucible:lava_crucible_quad_hot",
+    "lava_crucible:lava_crucible_quad_hot_done",
+    "lava_crucible:lava_crucible_quad_hot_empty",
+}
+
 minetest.register_abm({
-    nodenames = {
-        "lava_crucible:lava_crucible",
-        "lava_crucible:lava_crucible_hot",
-        "lava_crucible:lava_crucible_hot_done",
-        "lava_crucible:lava_crucible_hot_empty",
-        "lava_crucible:lava_crucible_double",
-        "lava_crucible:lava_crucible_double_hot",
-        "lava_crucible:lava_crucible_double_hot_done",
-        "lava_crucible:lava_crucible_double_hot_empty",
-        "lava_crucible:lava_crucible_quad",
-        "lava_crucible:lava_crucible_quad_hot",
-        "lava_crucible:lava_crucible_quad_hot_done",
-        "lava_crucible:lava_crucible_quad_hot_empty",
-    },
+    nodenames = active_crucible_nodes,
     neighbors = {"default:lava_flowing", "default:lava_source"},
     interval = conversion_interval,
     chance = 1,
@@ -685,6 +726,16 @@ minetest.register_abm({
                 timer:start(conversion_interval)
             end
         end
+    end,
+})
+
+minetest.register_abm({
+    nodenames = active_crucible_nodes,
+    interval = 1,
+    chance = 1,
+    catch_up = false,
+    action = function(pos, node, active_object_count, active_object_count_wider)
+        collect_dropped_stone(pos)
     end,
 })
 
