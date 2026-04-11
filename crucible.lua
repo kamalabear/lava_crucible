@@ -167,6 +167,12 @@ local crucible_common = {
     end,
     on_metadata_inventory_put = function(pos, listname, index, stack, player)
         update_crucible_state(pos)
+        if listname == "input" and has_adjacent_lava(pos) then
+            local timer = minetest.get_node_timer(pos)
+            if not timer:is_started() then
+                timer:start(conversion_interval)
+            end
+        end
     end,
     on_metadata_inventory_take = function(pos, listname, index, stack, player)
         update_crucible_state(pos)
@@ -186,6 +192,12 @@ local crucible_common = {
             else
                 puncher:get_inventory():remove_item("main", wielded_item)
                 update_crucible_state(pos)
+                if has_adjacent_lava(pos) then
+                    local timer = minetest.get_node_timer(pos)
+                    if not timer:is_started() then
+                        timer:start(conversion_interval)
+                    end
+                end
             end
         end
     end,
@@ -196,6 +208,25 @@ local crucible_common = {
         inv:set_size("input", 1)
         inv:set_size("soil_output", 4)
         inv:set_size("dust_output", #dust_table)
+    end,
+    on_timer = function(pos, elapsed)
+        if not has_adjacent_lava(pos) then return false end
+        local meta = minetest.get_meta(pos)
+        local inv = meta:get_inventory()
+        local input_stack = inv:get_stack("input", 1)
+        if input_stack:is_empty() then return false end
+        if minetest.get_item_group(input_stack:get_name(), "stone") <= 0 then return false end
+        local leftover = inv:add_item("soil_output", ItemStack("minetest_lava_crucible:lava_soil 1"))
+        if leftover:get_count() > 0 then
+            return true  -- soil_output full, retry after interval
+        end
+        input_stack:take_item(1)
+        inv:set_stack("input", 1, input_stack)
+        if math.random() < dust_chance then
+            inv:add_item("dust_output", ItemStack(pick_random_dust() .. " 1"))
+        end
+        update_crucible_state(pos)
+        return not inv:get_stack("input", 1):is_empty()
     end,
     on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
         local meta = minetest.get_meta(pos)
@@ -289,25 +320,12 @@ minetest.register_abm({
         update_crucible_state(pos)
         local meta = minetest.get_meta(pos)
         local inv = meta:get_inventory()
-        local input_stack = inv:get_stack("input", 1)
-        if input_stack:is_empty() then
-            return
+        if not inv:get_stack("input", 1):is_empty() then
+            local timer = minetest.get_node_timer(pos)
+            if not timer:is_started() then
+                timer:start(conversion_interval)
+            end
         end
-        if minetest.get_item_group(input_stack:get_name(), "stone") <= 0 then
-            return
-        end
-        local leftover = inv:add_item("soil_output", ItemStack("minetest_lava_crucible:lava_soil 1"))
-        if leftover:get_count() > 0 then
-            return
-        end
-        input_stack:take_item(1)
-        inv:set_stack("input", 1, input_stack)
-        -- Roll for bonus ore dust (skip silently if dust_output is full)
-        if math.random() < dust_chance then
-            inv:add_item("dust_output", ItemStack(pick_random_dust() .. " 1"))
-        end
-        update_crucible_state(pos)
-        return true
     end,
 })
 
