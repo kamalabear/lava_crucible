@@ -137,9 +137,9 @@ Each tick:
 1. If no adjacent lava → return `false` (stop timer)
 2. For each input slot (1 slot for single, 2 for double, 4 for quad):
    - Skip if slot is empty or item is unsupported
-   - If item is `moreblocks:cobble_compressed`:
+   - If item name contains `_compressed` (e.g., `moreblocks:cobble_compressed`, `moreblocks:desert_cobble_compressed`):
      - Attempt to add `lava_soil 9`
-     - On success: consume 1 compressed cobble, roll lump bonus
+     - On success: consume 1 compressed stone item, roll lump bonus
    - Else if item is in group `stone`:
      - Attempt to add `lava_soil 1`
      - On success: consume 1 stone item, roll dust bonus
@@ -203,10 +203,10 @@ If `moreores` is present, tin/silver/mithril entries are appended at load time. 
 
 Items in the `ore_dust` mod belong to group `mineral_dust = 1`, which is also required by the crucible crafting recipe (`group:mineral_dust`).
 
-Compressed cobble uses a parallel weighted table (`lump_table`) and `pick_random_lump()` for bonus outputs instead of dusts.
+Compressed stones use a parallel weighted table (`lump_table`) and `pick_random_lump()` for bonus outputs instead of dusts.
 
-Current compressed cobble rule:
-- Input item: `moreblocks:cobble_compressed`
+Current compressed stone rule:
+- Input item: Any item with `_compressed` in the name (e.g., `moreblocks:cobble_compressed`, `moreblocks:desert_cobble_compressed`)
 - Soil yield: 9 per item
 - Bonus chance: same `lava_crucible_dust_chance`
 - Bonus pool: `default:iron_lump`, `default:copper_lump`, `default:gold_lump`, rare `default:diamond`, and optional `moreores` lumps

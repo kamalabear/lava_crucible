@@ -168,12 +168,12 @@ end
 local conversion_interval = tonumber(minetest.settings:get("lava_crucible_conversion_interval")) or 10.0
 local dust_chance = tonumber(minetest.settings:get("lava_crucible_dust_chance")) or 0.5
 
-local function is_compressed_cobble(itemname)
-    return itemname == "moreblocks:cobble_compressed"
+local function is_compressed_stone(itemname)
+    return string.find(itemname, "_compressed") ~= nil
 end
 
 local function is_valid_crucible_input(itemname)
-    return minetest.get_item_group(itemname, "stone") > 0 or is_compressed_cobble(itemname)
+    return minetest.get_item_group(itemname, "stone") > 0 or is_compressed_stone(itemname)
 end
 
 local function collect_dropped_stone(pos)
@@ -284,7 +284,7 @@ local function process_input_stack(inv, slot)
     local soil_count = 1
     local bonus_item
 
-    if is_compressed_cobble(itemname) then
+    if is_compressed_stone(itemname) then
         soil_count = 9
         bonus_item = pick_random_lump()
     elseif minetest.get_item_group(itemname, "stone") > 0 then

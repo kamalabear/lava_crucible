@@ -102,16 +102,16 @@ The crucible top texture changes automatically to reflect its current state:
 
 ---
 
-## Compressed cobble support
+## Compressed stone support
 
-Crucibles support compressed cobble as a high-yield input:
+Crucibles support compressed stones as a high-yield input. Any item with `_compressed` in its name triggers the compressed processing rules:
 
 | Input item | Soil produced per item | Bonus output |
 |---|---|---|
 | Regular stone-group item | 1 lava soil | Weighted ore dust |
-| `moreblocks:cobble_compressed` | 9 lava soil | Weighted ore lump (same chance) |
+| `moreblocks:*_compressed` (e.g., `cobble_compressed`, `desert_cobble_compressed`) | 9 lava soil | Weighted ore lump (same chance) |
 
-Compressed cobble uses the same bonus chance setting as normal stone (`lava_crucible_dust_chance`) but the bonus pool changes from dust to lump-style outputs.
+Compressed stones use the same bonus chance setting as normal stone (`lava_crucible_dust_chance`) but the bonus pool changes from dust to lump-style outputs.
 
 ---
 
@@ -131,7 +131,7 @@ For regular stone input, each conversion has a chance (default 50%) to produce a
 
 If the dust stack is full, any additional dust from conversion will be lost.
 
-For compressed cobble input, bonus outputs are weighted ore lumps/rare gemstone items (`iron_lump`, `copper_lump`, `gold_lump`, rare `diamond`, plus optional moreores lumps).
+For compressed stone input, bonus outputs are weighted ore lumps/rare gemstone items (`iron_lump`, `copper_lump`, `gold_lump`, rare `diamond`, plus optional moreores lumps).
 
 ---
 
