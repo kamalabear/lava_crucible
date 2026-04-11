@@ -69,8 +69,11 @@ end
 
 local function crucible_output_has_items(meta)
     local inv = meta:get_inventory()
-    for i = 1, inv:get_size("output") do
-        if not inv:get_stack("output", i):is_empty() then return true end
+    for i = 1, inv:get_size("soil_output") do
+        if not inv:get_stack("soil_output", i):is_empty() then return true end
+    end
+    for i = 1, inv:get_size("dust_output") do
+        if not inv:get_stack("dust_output", i):is_empty() then return true end
     end
     return false
 end
@@ -103,6 +106,39 @@ local function update_crucible_state(pos)
     end
 end
 
+local conversion_interval = tonumber(minetest.settings:get("lava_crucible_conversion_interval")) or 10.0
+local dust_chance = tonumber(minetest.settings:get("lava_crucible_dust_chance")) or 0.5
+
+-- Weighted dust table: higher weight = more common
+local dust_table = {
+    {item = "ore_dust:iron_dust",    weight = 40},
+    {item = "ore_dust:copper_dust",  weight = 30},
+    {item = "ore_dust:gold_dust",    weight = 8},
+    {item = "ore_dust:diamond_dust", weight = 1},
+}
+if minetest.get_modpath("moreores") then
+    table.insert(dust_table, {item = "ore_dust:tin_dust",    weight = 20})
+    table.insert(dust_table, {item = "ore_dust:silver_dust", weight = 5})
+    table.insert(dust_table, {item = "ore_dust:mithril_dust",weight = 2})
+end
+
+local dust_total_weight = 0
+for _, entry in ipairs(dust_table) do
+    dust_total_weight = dust_total_weight + entry.weight
+end
+
+local function pick_random_dust()
+    local roll = math.random() * dust_total_weight
+    local cumulative = 0
+    for _, entry in ipairs(dust_table) do
+        cumulative = cumulative + entry.weight
+        if roll <= cumulative then
+            return entry.item
+        end
+    end
+    return dust_table[#dust_table].item
+end
+
 local crucible_common = {
     description = "A crucible that is used by placing it over lava",
     is_ground_content = false,
@@ -112,13 +148,13 @@ local crucible_common = {
         fixed = cbox,
     },
     allow_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
-        if to_list == "output" then
+        if to_list == "soil_output" or to_list == "dust_output" then
             return 0
         end
         return count
     end,
     allow_metadata_inventory_put = function(pos, listname, index, stack, player)
-        if listname == "output" then
+        if listname == "soil_output" or listname == "dust_output" then
             return 0
         end
         return stack:get_count()
@@ -158,25 +194,32 @@ local crucible_common = {
         meta:set_string("infotext", "Lava Crucible")
         local inv = meta:get_inventory()
         inv:set_size("input", 1)
-        inv:set_size("output", 6)
+        inv:set_size("soil_output", 4)
+        inv:set_size("dust_output", #dust_table)
     end,
     on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
         local meta = minetest.get_meta(pos)
         local inv = meta:get_inventory()
-        local formspec = "size[9,7]" ..
+        local dust_cols = math.min(#dust_table, 8)
+        local dust_rows = math.ceil(#dust_table / dust_cols)
+        local formspec = "size[9,8.5]" ..
             "bgcolor[#080808BB;true]" ..
-            "background9[0,0;9,7;gui_formbg.png;true;10]" ..
+            "background9[0,0;9,8.5;gui_formbg.png;true;10]" ..
             "label[0.5,0.3;Lava Crucible]" ..
             "label[0.5,1;Input:]" ..
             "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";input;0.5,1.5;1,1;]" ..
-            "label[2.5,0.3;Output:]" ..
-            "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";output;2.5,1;3,2;]" ..
-            "label[0.5,3;Player Inventory:]" ..
-            "list[current_player;main;0.5,3.5;8,3;]" ..
+            "label[2.5,0.3;Soil Output:]" ..
+            "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";soil_output;2.5,1;4,1;]" ..
+            "label[0.5,2.8;Ore Dust:]" ..
+            "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";dust_output;0.5,3.3;" .. dust_cols .. "," .. dust_rows .. ";]" ..
+            "label[0.5,4.5;Player Inventory:]" ..
+            "list[current_player;main;0.5,5;8,3;]" ..
             "listring[current_player;main]" ..
             "listring[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";input]" ..
             "listring[current_player;main]" ..
-            "listring[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";output]"
+            "listring[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";soil_output]" ..
+            "listring[current_player;main]" ..
+            "listring[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";dust_output]"
         minetest.show_formspec(clicker:get_player_name(), "minetest_lava_crucible:crucible_gui", formspec)
     end,
 }
@@ -236,39 +279,6 @@ hot_crucible_done.tiles = {
 hot_crucible_done.light_source = 7
 minetest.register_node("minetest_lava_crucible:lava_crucible_hot_done", hot_crucible_done)
 
-local conversion_interval = tonumber(minetest.settings:get("lava_crucible_conversion_interval")) or 10.0
-local dust_chance = tonumber(minetest.settings:get("lava_crucible_dust_chance")) or 0.5
-
--- Weighted dust table: higher weight = more common
-local dust_table = {
-    {item = "ore_dust:iron_dust",    weight = 40},
-    {item = "ore_dust:copper_dust",  weight = 30},
-    {item = "ore_dust:gold_dust",    weight = 8},
-    {item = "ore_dust:diamond_dust", weight = 1},
-}
-if minetest.get_modpath("moreores") then
-    table.insert(dust_table, {item = "ore_dust:tin_dust",    weight = 20})
-    table.insert(dust_table, {item = "ore_dust:silver_dust", weight = 5})
-    table.insert(dust_table, {item = "ore_dust:mithril_dust",weight = 2})
-end
-
-local dust_total_weight = 0
-for _, entry in ipairs(dust_table) do
-    dust_total_weight = dust_total_weight + entry.weight
-end
-
-local function pick_random_dust()
-    local roll = math.random() * dust_total_weight
-    local cumulative = 0
-    for _, entry in ipairs(dust_table) do
-        cumulative = cumulative + entry.weight
-        if roll <= cumulative then
-            return entry.item
-        end
-    end
-    return dust_table[#dust_table].item
-end
-
 minetest.register_abm({
     nodenames = {"minetest_lava_crucible:lava_crucible", "minetest_lava_crucible:lava_crucible_hot", "minetest_lava_crucible:lava_crucible_hot_done", "minetest_lava_crucible:lava_crucible_hot_empty"},
     neighbors = {"default:lava_flowing", "default:lava_source"},
@@ -286,15 +296,15 @@ minetest.register_abm({
         if minetest.get_item_group(input_stack:get_name(), "stone") <= 0 then
             return
         end
-        local leftover = inv:add_item("output", ItemStack("minetest_lava_crucible:lava_soil 1"))
+        local leftover = inv:add_item("soil_output", ItemStack("minetest_lava_crucible:lava_soil 1"))
         if leftover:get_count() > 0 then
             return
         end
         input_stack:take_item(1)
         inv:set_stack("input", 1, input_stack)
-        -- Roll for bonus ore dust (skip silently if output is full)
+        -- Roll for bonus ore dust (skip silently if dust_output is full)
         if math.random() < dust_chance then
-            inv:add_item("output", ItemStack(pick_random_dust() .. " 1"))
+            inv:add_item("dust_output", ItemStack(pick_random_dust() .. " 1"))
         end
         update_crucible_state(pos)
         return true
