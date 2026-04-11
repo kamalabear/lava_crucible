@@ -21,7 +21,7 @@ The Lava Crucible processes stone into **lava soil** — a fertile, animated soi
    - Punch the crucible while holding any stone-group item (adds the whole stack)
    - Right-click to open the GUI and drag items into the input slot(s)
 4. **Wait** — after one full conversion interval the crucible begins processing automatically
-5. **Collect output** — right-click to open the GUI and take lava soil and ore dust from the output slots
+5. **Collect output** — right-click to open the GUI and take lava soil and bonus drops from the output slots
 
 The crucible is **owner-locked**: only the player who placed it can open it, add input, or take output. Anyone else receives a chat message identifying the owner.
 
@@ -102,9 +102,22 @@ The crucible top texture changes automatically to reflect its current state:
 
 ---
 
+## Compressed cobble support
+
+Crucibles support compressed cobble as a high-yield input:
+
+| Input item | Soil produced per item | Bonus output |
+|---|---|---|
+| Regular stone-group item | 1 lava soil | Weighted ore dust |
+| `moreblocks:cobble_compressed` | 9 lava soil | Weighted ore lump (same chance) |
+
+Compressed cobble uses the same bonus chance setting as normal stone (`lava_crucible_dust_chance`) but the bonus pool changes from dust to lump-style outputs.
+
+---
+
 ## Ore dust drops
 
-Each conversion has a chance (default 50%) to produce a random ore dust in the dust output slots. The distribution is weighted:
+For regular stone input, each conversion has a chance (default 50%) to produce a random ore dust in the dust output slots. The distribution is weighted:
 
 | Dust | Relative frequency | Requires |
 |---|---|---|
@@ -117,6 +130,8 @@ Each conversion has a chance (default 50%) to produce a random ore dust in the d
 | Mithril dust | Rare | `moreores` |
 
 If the dust stack is full, any additional dust from conversion will be lost.
+
+For compressed cobble input, bonus outputs are weighted ore lumps/rare gemstone items (`iron_lump`, `copper_lump`, `gold_lump`, rare `diamond`, plus optional moreores lumps).
 
 ---
 

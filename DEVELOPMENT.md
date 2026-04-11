@@ -17,14 +17,14 @@
 
 ## Crafting items and chain
 
-All crafted items are registered as `craftitem` (not nodes). The full chain:
+Raw materials and intermediates are a mix of craftitems and nodes. The full chain:
 
 | Item | Registered name | How obtained |
 |---|---|---|
-| Clay Graphite | `lava_crucible:clay_graphite` | Shapeless: `clay_lump` + `coal_lump` → 2× |
-| Uncured Crucible | `lava_crucible:uncured_crucible` | Cup shape (5×) of `clay_graphite` |
-| Uncured Double Crucible | `lava_crucible:uncured_double_crucible` | Cup shape (5×) of `uncured_crucible` |
-| Uncured Quad Crucible | `lava_crucible:uncured_quad_crucible` | Cup shape (5×) of `uncured_double_crucible` |
+| Clay Graphite (craftitem) | `lava_crucible:clay_graphite` | Shapeless: `clay_lump` + `coal_lump` → 1× |
+| Uncured Crucible (node) | `lava_crucible:uncured_crucible` | Cup shape (5×) of `clay_graphite` |
+| Uncured Double Crucible (node) | `lava_crucible:uncured_double_crucible` | Cup shape (5×) of `uncured_crucible` |
+| Uncured Quad Crucible (node) | `lava_crucible:uncured_quad_crucible` | Cup shape (5×) of `uncured_double_crucible` |
 
 Each uncured item is then cooked in a furnace to produce the corresponding node:
 
@@ -42,7 +42,7 @@ item  ·     item
 ·     item  ·
 ```
 
-Inventory images: `clay_graphite.png`, `uncured_crucible.png` (shared by all three uncured items — distinct art can be added later).
+Uncured node textures: `crucible_uncured_top.png`, `crucible_uncured_side.png`, `crucible_uncured_bottom.png`.
 
 ---
 
@@ -136,13 +136,19 @@ Defined in `crucible_common` for the single tier; overridden in `crucible_double
 Each tick:
 1. If no adjacent lava → return `false` (stop timer)
 2. For each input slot (1 slot for single, 2 for double, 4 for quad):
-   - Skip if slot is empty or item is not in group `stone`
-   - Attempt `inv:add_item("soil_output", lava_soil 1)` — skip this slot if soil output is full
-   - On success: remove 1 item from input, roll for dust bonus
+   - Skip if slot is empty or item is unsupported
+   - If item is `moreblocks:cobble_compressed`:
+     - Attempt to add `lava_soil 9`
+     - On success: consume 1 compressed cobble, roll lump bonus
+   - Else if item is in group `stone`:
+     - Attempt to add `lava_soil 1`
+     - On success: consume 1 stone item, roll dust bonus
 3. Call `update_crucible_state(pos)`
 4. Return `true` if any input slot still has items, `false` otherwise (stops timer)
 
 If `soil_output` is full for every slot, the timer keeps firing (returns `true`) but no input is consumed.
+
+The shared helper `process_input_stack(inv, slot)` handles all per-item conversion logic and is used by single/double/quad timers.
 
 ### Timer start rules
 
@@ -153,6 +159,8 @@ The timer is started (`timer:start(conversion_interval)`) only when `not timer:i
 | `on_punch` | Player adds stone via punch, lava is adjacent |
 | `on_metadata_inventory_put` | Player drags stone into `input` via GUI, lava is adjacent |
 | ABM `action` | Lava appears next to a crucible that already has input |
+
+Dropped item entities are also handled by a second ABM (`interval=1`) via `collect_dropped_stone(pos)`, which pulls valid input items lying above the crucible into `input` if space is available.
 
 ### ABM
 
@@ -195,6 +203,14 @@ If `moreores` is present, tin/silver/mithril entries are appended at load time. 
 
 Items in the `ore_dust` mod belong to group `mineral_dust = 1`, which is also required by the crucible crafting recipe (`group:mineral_dust`).
 
+Compressed cobble uses a parallel weighted table (`lump_table`) and `pick_random_lump()` for bonus outputs instead of dusts.
+
+Current compressed cobble rule:
+- Input item: `moreblocks:cobble_compressed`
+- Soil yield: 9 per item
+- Bonus chance: same `lava_crucible_dust_chance`
+- Bonus pool: `default:iron_lump`, `default:copper_lump`, `default:gold_lump`, rare `default:diamond`, and optional `moreores` lumps
+
 ---
 
 ## `ore_dust` mod relationship
@@ -207,5 +223,4 @@ The `ore_dust` mod (companion repository: `kamalabear/ore_dust`) owns all dust i
 
 - **Lava-throw dust:** when stone is thrown directly into lava (no crucible), occasionally spawn a mineral dust item that floats to the surface for the player to grab
 - **Nether crucible:** acts like a nether chest — each player has their own private inventory in the same physical node
-- **Compressed stone support:** processing compressed stone generates nuggets or shards instead of dust
-- **Support dropping stone into the crucible**
+- **Additional compressed inputs:** support desert/sandstone compressed variants with configurable output pools
