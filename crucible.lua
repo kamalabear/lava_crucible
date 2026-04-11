@@ -168,6 +168,14 @@ end
 local conversion_interval = tonumber(minetest.settings:get("lava_crucible_conversion_interval")) or 10.0
 local dust_chance = tonumber(minetest.settings:get("lava_crucible_dust_chance")) or 0.5
 
+local function is_compressed_cobble(itemname)
+    return itemname == "moreblocks:cobble_compressed"
+end
+
+local function is_valid_crucible_input(itemname)
+    return minetest.get_item_group(itemname, "stone") > 0 or is_compressed_cobble(itemname)
+end
+
 local function collect_dropped_stone(pos)
     local meta = minetest.get_meta(pos)
     local inv = meta:get_inventory()
@@ -178,7 +186,7 @@ local function collect_dropped_stone(pos)
         local ent = obj:get_luaentity()
         if ent and ent.name == "__builtin:item" and ent.itemstring then
             local stack = ItemStack(ent.itemstring)
-            if not stack:is_empty() and minetest.get_item_group(stack:get_name(), "stone") > 0 then
+            if not stack:is_empty() and is_valid_crucible_input(stack:get_name()) then
                 local leftover = inv:add_item("input", stack)
                 if leftover:get_count() < stack:get_count() then
                     inserted_any = true
@@ -225,6 +233,23 @@ for _, entry in ipairs(dust_table) do
     dust_total_weight = dust_total_weight + entry.weight
 end
 
+local lump_table = {
+    {item = "default:iron_lump",   weight = 40},
+    {item = "default:copper_lump", weight = 30},
+    {item = "default:gold_lump",   weight = 8},
+    {item = "default:diamond",     weight = 1},
+}
+if minetest.get_modpath("moreores") then
+    table.insert(lump_table, {item = "moreores:tin_lump",    weight = 20})
+    table.insert(lump_table, {item = "moreores:silver_lump", weight = 5})
+    table.insert(lump_table, {item = "moreores:mithril_lump",weight = 2})
+end
+
+local lump_total_weight = 0
+for _, entry in ipairs(lump_table) do
+    lump_total_weight = lump_total_weight + entry.weight
+end
+
 local function pick_random_dust()
     local roll = math.random() * dust_total_weight
     local cumulative = 0
@@ -235,6 +260,53 @@ local function pick_random_dust()
         end
     end
     return dust_table[#dust_table].item
+end
+
+local function pick_random_lump()
+    local roll = math.random() * lump_total_weight
+    local cumulative = 0
+    for _, entry in ipairs(lump_table) do
+        cumulative = cumulative + entry.weight
+        if roll <= cumulative then
+            return entry.item
+        end
+    end
+    return lump_table[#lump_table].item
+end
+
+local function process_input_stack(inv, slot)
+    local input_stack = inv:get_stack("input", slot)
+    if input_stack:is_empty() then
+        return false, false
+    end
+
+    local itemname = input_stack:get_name()
+    local soil_count = 1
+    local bonus_item
+
+    if is_compressed_cobble(itemname) then
+        soil_count = 9
+        bonus_item = pick_random_lump()
+    elseif minetest.get_item_group(itemname, "stone") > 0 then
+        soil_count = 1
+        bonus_item = pick_random_dust()
+    else
+        return false, false
+    end
+
+    local leftover = inv:add_item("soil_output", ItemStack("lava_crucible:lava_soil " .. soil_count))
+    if leftover:get_count() > 0 then
+        return false, true
+    end
+
+    input_stack:take_item(1)
+    inv:set_stack("input", slot, input_stack)
+
+    if math.random() < dust_chance then
+        inv:add_item("dust_output", ItemStack(bonus_item .. " 1"))
+    end
+
+    return true, false
 end
 
 local crucible_common = {
@@ -300,7 +372,7 @@ local crucible_common = {
         if wielded_item:is_empty() then
             return
         end
-        if minetest.get_item_group(wielded_item:get_name(), "stone") > 0 then
+        if is_valid_crucible_input(wielded_item:get_name()) then
             local meta = minetest.get_meta(pos)
             local inv = meta:get_inventory()
             local item_to_add = ItemStack(wielded_item:get_name() .. " " .. wielded_item:get_count())
@@ -333,17 +405,10 @@ local crucible_common = {
         local inv = meta:get_inventory()
         local input_stack = inv:get_stack("input", 1)
         if input_stack:is_empty() then return false end
-        if minetest.get_item_group(input_stack:get_name(), "stone") <= 0 then return false end
-        local leftover = inv:add_item("soil_output", ItemStack("lava_crucible:lava_soil 1"))
-        if leftover:get_count() > 0 then
-            return true  -- soil_output full, retry after interval
-        end
-        input_stack:take_item(1)
-        inv:set_stack("input", 1, input_stack)
-        if math.random() < dust_chance then
-            inv:add_item("dust_output", ItemStack(pick_random_dust() .. " 1"))
-        end
+        local converted, blocked = process_input_stack(inv, 1)
+        if not converted and not blocked then return false end
         update_crucible_state(pos)
+        if blocked then return true end
         return not inv:get_stack("input", 1):is_empty()
     end,
     on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
@@ -401,20 +466,13 @@ crucible_double_common.on_timer = function(pos, elapsed)
     if not has_adjacent_lava(pos) then return false end
     local meta = minetest.get_meta(pos)
     local inv = meta:get_inventory()
+    local blocked = false
     for i = 1, inv:get_size("input") do
-        local input_stack = inv:get_stack("input", i)
-        if not input_stack:is_empty() and minetest.get_item_group(input_stack:get_name(), "stone") > 0 then
-            local leftover = inv:add_item("soil_output", ItemStack("lava_crucible:lava_soil 1"))
-            if leftover:get_count() == 0 then
-                input_stack:take_item(1)
-                inv:set_stack("input", i, input_stack)
-                if math.random() < dust_chance then
-                    inv:add_item("dust_output", ItemStack(pick_random_dust() .. " 1"))
-                end
-            end
-        end
+        local _, slot_blocked = process_input_stack(inv, i)
+        blocked = blocked or slot_blocked
     end
     update_crucible_state(pos)
+    if blocked then return true end
     return not crucible_input_empty(meta)
 end
 crucible_double_common.on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
@@ -588,20 +646,13 @@ crucible_quad_common.on_timer = function(pos, elapsed)
     if not has_adjacent_lava(pos) then return false end
     local meta = minetest.get_meta(pos)
     local inv = meta:get_inventory()
+    local blocked = false
     for i = 1, inv:get_size("input") do
-        local input_stack = inv:get_stack("input", i)
-        if not input_stack:is_empty() and minetest.get_item_group(input_stack:get_name(), "stone") > 0 then
-            local leftover = inv:add_item("soil_output", ItemStack("lava_crucible:lava_soil 1"))
-            if leftover:get_count() == 0 then
-                input_stack:take_item(1)
-                inv:set_stack("input", i, input_stack)
-                if math.random() < dust_chance then
-                    inv:add_item("dust_output", ItemStack(pick_random_dust() .. " 1"))
-                end
-            end
-        end
+        local _, slot_blocked = process_input_stack(inv, i)
+        blocked = blocked or slot_blocked
     end
     update_crucible_state(pos)
+    if blocked then return true end
     return not crucible_input_empty(meta)
 end
 crucible_quad_common.on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
