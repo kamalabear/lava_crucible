@@ -64,7 +64,11 @@ local function has_adjacent_lava(pos)
 end
 
 local function crucible_input_empty(meta)
-    return meta:get_inventory():get_stack("input", 1):is_empty()
+    local inv = meta:get_inventory()
+    for i = 1, inv:get_size("input") do
+        if not inv:get_stack("input", i):is_empty() then return false end
+    end
+    return true
 end
 
 local function crucible_output_has_items(meta)
@@ -90,15 +94,17 @@ local function update_crucible_state(pos)
     local input_empty = crucible_input_empty(meta)
     local output_full = crucible_output_has_items(meta)
 
+    local is_double = node.name:find("_double") ~= nil
+    local prefix = is_double and "minetest_lava_crucible:lava_crucible_double" or "minetest_lava_crucible:lava_crucible"
     local target
     if not lava then
-        target = "minetest_lava_crucible:lava_crucible"
+        target = prefix
     elseif not input_empty then
-        target = "minetest_lava_crucible:lava_crucible_hot"
+        target = prefix .. "_hot"
     elseif output_full then
-        target = "minetest_lava_crucible:lava_crucible_hot_done"
+        target = prefix .. "_hot_done"
     else
-        target = "minetest_lava_crucible:lava_crucible_hot_empty"
+        target = prefix .. "_hot_empty"
     end
 
     if node.name ~= target then
@@ -224,7 +230,7 @@ local crucible_common = {
         meta:set_string("infotext", "Lava Crucible")
         local inv = meta:get_inventory()
         inv:set_size("input", 1)
-        inv:set_size("soil_output", 4)
+        inv:set_size("soil_output", 1)
         inv:set_size("dust_output", #dust_table)
     end,
     on_timer = function(pos, elapsed)
@@ -263,7 +269,7 @@ local crucible_common = {
             "label[0.5,1;Input:]" ..
             "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";input;0.5,1.5;1,1;]" ..
             "label[2.5,0.3;Soil Output:]" ..
-            "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";soil_output;2.5,1;4,1;]" ..
+            "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";soil_output;2.5,1;1,1;]" ..
             "label[0.5,2.8;Ore Dust:]" ..
             "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";dust_output;0.5,3.3;" .. dust_cols .. "," .. dust_rows .. ";]" ..
             "label[0.5,4.5;Player Inventory:]" ..
@@ -277,6 +283,80 @@ local crucible_common = {
         minetest.show_formspec(clicker:get_player_name(), "minetest_lava_crucible:crucible_gui", formspec)
     end,
 }
+
+-- Double Lava Crucible: 2 input slots, 2 soil output slots, double dust slots
+local crucible_double_common = clone_table(crucible_common)
+crucible_double_common.description = "Double Lava Crucible"
+crucible_double_common.after_place_node = function(pos, placer, itemstack, pointed_thing)
+    if placer and placer:is_player() then
+        local meta = minetest.get_meta(pos)
+        meta:set_string("owner", placer:get_player_name())
+        meta:set_string("infotext", "Double Lava Crucible (owned by " .. placer:get_player_name() .. ")")
+    end
+end
+crucible_double_common.on_construct = function(pos)
+    local meta = minetest.get_meta(pos)
+    meta:set_string("infotext", "Double Lava Crucible")
+    local inv = meta:get_inventory()
+    inv:set_size("input", 2)
+    inv:set_size("soil_output", 2)
+    inv:set_size("dust_output", #dust_table * 2)
+end
+crucible_double_common.on_timer = function(pos, elapsed)
+    if not has_adjacent_lava(pos) then return false end
+    local meta = minetest.get_meta(pos)
+    local inv = meta:get_inventory()
+    for i = 1, inv:get_size("input") do
+        local input_stack = inv:get_stack("input", i)
+        if not input_stack:is_empty() and minetest.get_item_group(input_stack:get_name(), "stone") > 0 then
+            local leftover = inv:add_item("soil_output", ItemStack("minetest_lava_crucible:lava_soil 1"))
+            if leftover:get_count() == 0 then
+                input_stack:take_item(1)
+                inv:set_stack("input", i, input_stack)
+                if math.random() < dust_chance then
+                    inv:add_item("dust_output", ItemStack(pick_random_dust() .. " 1"))
+                end
+            end
+        end
+    end
+    update_crucible_state(pos)
+    return not crucible_input_empty(meta)
+end
+crucible_double_common.on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
+    local meta = minetest.get_meta(pos)
+    local owner = meta:get_string("owner")
+    if owner ~= "" and clicker:get_player_name() ~= owner then
+        minetest.chat_send_player(clicker:get_player_name(), "This crucible belongs to " .. owner .. ".")
+        return
+    end
+    local pnode = pos.x .. "," .. pos.y .. "," .. pos.z
+    local dust_count = #dust_table * 2
+    local dust_cols = math.min(dust_count, 8)
+    local dust_rows = math.ceil(dust_count / dust_cols)
+    local dust_y = 3.3
+    local inv_label_y = dust_y + dust_rows + 0.4
+    local inv_y = inv_label_y + 0.5
+    local form_h = inv_y + 3.2
+    local formspec = "size[9," .. form_h .. "]" ..
+        "bgcolor[#080808BB;true]" ..
+        "background9[0,0;9," .. form_h .. ";gui_formbg.png;true;10]" ..
+        "label[0.5,0.3;Double Lava Crucible]" ..
+        "label[0.5,1;Input:]" ..
+        "list[nodemeta:" .. pnode .. ";input;0.5,1.5;2,1;]" ..
+        "label[3.5,1;Soil Output:]" ..
+        "list[nodemeta:" .. pnode .. ";soil_output;3.5,1.5;2,1;]" ..
+        "label[0.5," .. (dust_y - 0.4) .. ";Ore Dust:]" ..
+        "list[nodemeta:" .. pnode .. ";dust_output;0.5," .. dust_y .. ";" .. dust_cols .. "," .. dust_rows .. ";]" ..
+        "label[0.5," .. inv_label_y .. ";Player Inventory:]" ..
+        "list[current_player;main;0.5," .. inv_y .. ";8,3;]" ..
+        "listring[current_player;main]" ..
+        "listring[nodemeta:" .. pnode .. ";input]" ..
+        "listring[current_player;main]" ..
+        "listring[nodemeta:" .. pnode .. ";soil_output]" ..
+        "listring[current_player;main]" ..
+        "listring[nodemeta:" .. pnode .. ";dust_output]"
+    minetest.show_formspec(clicker:get_player_name(), "minetest_lava_crucible:crucible_gui", formspec)
+end
 
 local cold_crucible = clone_table(crucible_common)
 cold_crucible.tiles = {
@@ -333,8 +413,72 @@ hot_crucible_done.tiles = {
 hot_crucible_done.light_source = 7
 minetest.register_node("minetest_lava_crucible:lava_crucible_hot_done", hot_crucible_done)
 
+local cold_crucible_double = clone_table(crucible_double_common)
+cold_crucible_double.tiles = {
+    "crucible_top.png",
+    "crucible_bottom.png",
+    "crucible_side.png",
+    "crucible_side.png",
+    "crucible_side.png",
+    "crucible_side.png",
+}
+minetest.register_node("minetest_lava_crucible:lava_crucible_double", cold_crucible_double)
+
+local hot_crucible_double = clone_table(crucible_double_common)
+hot_crucible_double.tiles = {
+    {
+        name = "crucible_top_hot.png",
+        animation = {
+            type = "vertical_frames",
+            aspect_w = 128,
+            aspect_h = 128,
+            length = 4.5,
+        },
+    },
+    "crucible_bottom_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+}
+hot_crucible_double.light_source = 10
+minetest.register_node("minetest_lava_crucible:lava_crucible_double_hot", hot_crucible_double)
+
+local hot_crucible_double_empty = clone_table(crucible_double_common)
+hot_crucible_double_empty.tiles = {
+    "crucible_top_hot_empty.png",
+    "crucible_bottom_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+}
+hot_crucible_double_empty.light_source = 7
+minetest.register_node("minetest_lava_crucible:lava_crucible_double_hot_empty", hot_crucible_double_empty)
+
+local hot_crucible_double_done = clone_table(crucible_double_common)
+hot_crucible_double_done.tiles = {
+    "crucible_top_hot_done.png",
+    "crucible_bottom_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+    "crucible_side_hot.png",
+}
+hot_crucible_double_done.light_source = 7
+minetest.register_node("minetest_lava_crucible:lava_crucible_double_hot_done", hot_crucible_double_done)
+
 minetest.register_abm({
-    nodenames = {"minetest_lava_crucible:lava_crucible", "minetest_lava_crucible:lava_crucible_hot", "minetest_lava_crucible:lava_crucible_hot_done", "minetest_lava_crucible:lava_crucible_hot_empty"},
+    nodenames = {
+        "minetest_lava_crucible:lava_crucible",
+        "minetest_lava_crucible:lava_crucible_hot",
+        "minetest_lava_crucible:lava_crucible_hot_done",
+        "minetest_lava_crucible:lava_crucible_hot_empty",
+        "minetest_lava_crucible:lava_crucible_double",
+        "minetest_lava_crucible:lava_crucible_double_hot",
+        "minetest_lava_crucible:lava_crucible_double_hot_done",
+        "minetest_lava_crucible:lava_crucible_double_hot_empty",
+    },
     neighbors = {"default:lava_flowing", "default:lava_source"},
     interval = conversion_interval,
     chance = 1,
@@ -342,8 +486,7 @@ minetest.register_abm({
     action = function(pos, node, active_object_count, active_object_count_wider)
         update_crucible_state(pos)
         local meta = minetest.get_meta(pos)
-        local inv = meta:get_inventory()
-        if not inv:get_stack("input", 1):is_empty() then
+        if not crucible_input_empty(meta) then
             local timer = minetest.get_node_timer(pos)
             if not timer:is_started() then
                 timer:start(conversion_interval)
@@ -363,6 +506,14 @@ minetest.register_craft({
         {"default:clay_lump","","default:clay_lump"},
         {"default:clay_lump","group:mineral_dust","default:clay_lump"},
         {"","default:clay_lump",""}
+    }
+})
+
+minetest.register_craft({
+    type = "shaped",
+    output = "minetest_lava_crucible:lava_crucible_double 1",
+    recipe = {
+        {"minetest_lava_crucible:lava_crucible", "minetest_lava_crucible:lava_crucible"},
     }
 })
 
