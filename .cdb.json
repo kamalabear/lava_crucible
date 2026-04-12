@@ -1,0 +1,17 @@
+{
+  "$schema": "https://content.luanti.org/api/cdb_schema/",
+  "type": "MOD",
+  "name": "lava_crucible",
+  "title": "Lava Crucible",
+  "short_description": "Tiered lava-heated crucibles that convert stone into volcanic soil with weighted bonus drops.",
+  "dev_state": "ACTIVELY_DEVELOPED",
+  "ai_disclosure": "ASSISTED",
+  "tags": ["machines", "smelting", "resources", "progression"],
+  "license": "MIT",
+  "media_license": "MIT",
+  "long_description": "Lava Crucible adds tiered crucibles that process stone into volcanic soil when heated by adjacent lava.\n\nKey features:\n- Three tiers: single, double, and quad processing throughput.\n- Ender variants with shared per-player inventories.\n- Weighted bonus output pools with ore-dust rewards during conversion.\n- Distinct visual states for cold, hot, processing, and done states.\n- Designed as the advanced production path for volcanic soil progression.\n\nCompatibility:\n- Required: default, ore_dust, volcanic_soil\n- Optional: moreores, moreblocks, technic",
+  "repo": "https://github.com/kamalabear/lava_crucible",
+  "issue_tracker": "https://github.com/kamalabear/lava_crucible/issues",
+  "forum_url": "https://github.com/kamalabear/lava_crucible/discussions",
+  "website": "https://github.com/kamalabear/lava_crucible"
+}
