@@ -4,7 +4,7 @@
   "name": "lava_crucible",
   "title": "Lava Crucible",
   "short_description": "Tiered lava-heated crucibles that convert stone into volcanic soil with weighted bonus drops.",
-  "dev_state": "ACTIVELY_DEVELOPED",
+  "dev_state": "WIP",
   "ai_disclosure": "ASSISTED",
   "tags": ["machines", "smelting", "resources", "progression"],
   "license": "MIT",
