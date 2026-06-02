@@ -260,6 +260,12 @@ Technic dust definitions remain owned by `technic`; lava_crucible only consumes 
 - **Make crucible types more visually distinct**
 - **Recover crucible material:** Allow crucibles to be pulverized into clay graphite dust that can be reconstituted into clay graphite.
 - **Make ore_dust optional**
+- **GUI fix:** Align input and output in crucible GUI for a cleaner appearance.
+- **Dust from compressed stone:** Two options - 1) Add dust, as well as nuggets, to compressed stone drops OR 2) Compressed stone drops dust instead of nuggets, just in greater quantities. POSSIBLE EXTENSION - types of drops are configurable.
+- **Melt dust into nuggets:** The crucible must be used to create nuggets from dust.  Dust must be collected in a glass bottle and put back in the crucible to produce an ore bar (and an empty bottle).
+- **Replace nuggets with bars**
+- **Compresed stone only in Large:**
+- **Crucibles are not destroyed by lava:** When trying to move a crucible, hitting it with a pickaxe results in the crucible falling into the lava below it and being destroyed.  Instead, loose crucibles should float on lava.
 
 ## Bugs
 
@@ -268,3 +274,4 @@ Technic dust definitions remain owned by `technic`; lava_crucible only consumes 
 - **Sometimes uncured crucibles never finish baking:** Reports of small crucibles intermittently having issues where the baking does not complete.  Medium and large crucibles never finish baking.
 - **Ender crucibles won't open:** Medium and large ender crucibles won't open the GUI.
 - **Drop in is undocumented**
+- **Diamonds are VERY rare**
