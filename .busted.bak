@@ -1,0 +1,10 @@
+return {
+  _all = {
+    verbose = true,
+    output = "utfTerminal",
+  },
+  default = {
+    tags = "-pending",
+  },
+}
+

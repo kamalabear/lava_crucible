@@ -1,4 +1,5 @@
 -- Define crucible
+print("[lava_crucible] Loading crucible.lua - Recipe registration debugging enabled")
 
 -- Single crucible: half height (walls reach y=0.0)
 local cbox = {
@@ -1632,7 +1633,10 @@ minetest.register_craft({
     recipe = {"default:clay_lump", "ore_dust:obsidian_dust"},
 })
 
+print("[lava_crucible] ========== REGISTERING UNCURED NODES AND RECIPES ==========")
+
 -- Uncured Crucible: shaped from Clay Graphite, must be baked before use
+print("[lava_crucible] Registering uncured_crucible node...")
 minetest.register_node("lava_crucible:uncured_crucible", {
     description = "Uncured Crucible",
     drawtype = "nodebox",
@@ -1649,6 +1653,7 @@ minetest.register_node("lava_crucible:uncured_crucible", {
     },
     node_box = { type = "fixed", fixed = cbox },
 })
+print("[lava_crucible] ✓ uncured_crucible node registered")
 
 -- clay_graphite, none,          clay_graphite
 -- clay_graphite, none,  clay_graphite
@@ -1670,7 +1675,9 @@ minetest.register_craft({
     recipe = "lava_crucible:uncured_crucible",
     cooktime = 15,
 })
+print("[lava_crucible] ✓ Cooking recipe registered: uncured_crucible")
 
+print("[lava_crucible] Registering uncured_ender_crucible node...")
 minetest.register_node("lava_crucible:uncured_ender_crucible", {
     description = "Uncured Ender Crucible",
     drawtype = "nodebox",
@@ -1687,6 +1694,7 @@ minetest.register_node("lava_crucible:uncured_ender_crucible", {
     },
     node_box = { type = "fixed", fixed = cbox },
 })
+print("[lava_crucible] ✓ uncured_ender_crucible node registered")
 
 minetest.register_craft({
     type = "shaped",
@@ -1698,14 +1706,17 @@ minetest.register_craft({
     }
 })
 
+print("[lava_crucible] Registering cooking recipe: uncured_ender_crucible → lava_crucible_ender (15s)")
 minetest.register_craft({
     type = "cooking",
     output = "lava_crucible:lava_crucible_ender 1",
     recipe = "lava_crucible:uncured_ender_crucible",
     cooktime = 15,
 })
+print("[lava_crucible] ✓ Cooking recipe registered: uncured_ender_crucible")
 
 -- Uncured Double Ender Crucible: 5 uncured ender crucibles in a cup shape, then baked
+print("[lava_crucible] Registering uncured_ender_double_crucible node...")
 minetest.register_node("lava_crucible:uncured_ender_double_crucible", {
     description = "Uncured Double Ender Crucible",
     drawtype = "nodebox",
@@ -1722,6 +1733,7 @@ minetest.register_node("lava_crucible:uncured_ender_double_crucible", {
     },
     node_box = { type = "fixed", fixed = cbox_double },
 })
+print("[lava_crucible] ✓ uncured_ender_double_crucible node registered")
 
 minetest.register_craft({
     type = "shaped",
@@ -1733,14 +1745,17 @@ minetest.register_craft({
     }
 })
 
+print("[lava_crucible] Registering cooking recipe: uncured_ender_double_crucible → lava_crucible_ender_double (20s)")
 minetest.register_craft({
     type = "cooking",
     output = "lava_crucible:lava_crucible_ender_double 1",
     recipe = "lava_crucible:uncured_ender_double_crucible",
     cooktime = 20,
 })
+print("[lava_crucible] ✓ Cooking recipe registered: uncured_ender_double_crucible")
 
 -- Uncured Quad Ender Crucible: 5 uncured double ender crucibles in a cup shape, then baked
+print("[lava_crucible] Registering uncured_ender_quad_crucible node...")
 minetest.register_node("lava_crucible:uncured_ender_quad_crucible", {
     description = "Uncured Quad Ender Crucible",
     drawtype = "nodebox",
@@ -1757,6 +1772,7 @@ minetest.register_node("lava_crucible:uncured_ender_quad_crucible", {
     },
     node_box = { type = "fixed", fixed = cbox_quad },
 })
+print("[lava_crucible] ✓ uncured_ender_quad_crucible node registered")
 
 minetest.register_craft({
     type = "shaped",
@@ -1768,14 +1784,17 @@ minetest.register_craft({
     }
 })
 
+print("[lava_crucible] Registering cooking recipe: uncured_ender_quad_crucible → lava_crucible_ender_quad (25s)")
 minetest.register_craft({
     type = "cooking",
     output = "lava_crucible:lava_crucible_ender_quad 1",
     recipe = "lava_crucible:uncured_ender_quad_crucible",
     cooktime = 25,
 })
+print("[lava_crucible] ✓ Cooking recipe registered: uncured_ender_quad_crucible")
 
 -- Uncured Double Crucible: 5 uncured crucibles in a cup shape, then baked
+print("[lava_crucible] Registering uncured_double_crucible node...")
 minetest.register_node("lava_crucible:uncured_double_crucible", {
     description = "Uncured Double Crucible",
     drawtype = "nodebox",
@@ -1792,6 +1811,7 @@ minetest.register_node("lava_crucible:uncured_double_crucible", {
     },
     node_box = { type = "fixed", fixed = cbox_double },
 })
+print("[lava_crucible] ✓ uncured_double_crucible node registered")
 
 minetest.register_craft({
     type = "shaped",
@@ -1803,14 +1823,17 @@ minetest.register_craft({
     }
 })
 
+print("[lava_crucible] Registering cooking recipe: uncured_double_crucible → lava_crucible_double (20s)")
 minetest.register_craft({
     type = "cooking",
     output = "lava_crucible:lava_crucible_double 1",
     recipe = "lava_crucible:uncured_double_crucible",
     cooktime = 20,
 })
+print("[lava_crucible] ✓ Cooking recipe registered: uncured_double_crucible")
 
 -- Uncured Quad Crucible: 5 uncured double crucibles in a cup shape, then baked
+print("[lava_crucible] Registering uncured_quad_crucible node...")
 minetest.register_node("lava_crucible:uncured_quad_crucible", {
     description = "Uncured Quad Crucible",
     drawtype = "nodebox",
@@ -1827,6 +1850,7 @@ minetest.register_node("lava_crucible:uncured_quad_crucible", {
     },
     node_box = { type = "fixed", fixed = cbox_quad },
 })
+print("[lava_crucible] ✓ uncured_quad_crucible node registered")
 
 minetest.register_craft({
     type = "shaped",
@@ -1838,12 +1862,14 @@ minetest.register_craft({
     }
 })
 
+print("[lava_crucible] Registering cooking recipe: uncured_quad_crucible → lava_crucible_quad (25s)")
 minetest.register_craft({
     type = "cooking",
     output = "lava_crucible:lava_crucible_quad 1",
     recipe = "lava_crucible:uncured_quad_crucible",
     cooktime = 25,
 })
+print("[lava_crucible] ✓ Cooking recipe registered: uncured_quad_crucible")
 
 -- Backward compatibility: map old item/node names to the new lava_crucible namespace
 local legacy_names = {
@@ -1917,3 +1943,26 @@ end)
 --         -- default: nil
     
 -- })
+
+-- DEBUG: Verify all recipes were registered
+print("[lava_crucible] ========== RECIPE REGISTRATION VERIFICATION ==========")
+local recipes_to_verify = {
+    "uncured_crucible",
+    "uncured_ender_crucible", 
+    "uncured_double_crucible",
+    "uncured_ender_double_crucible",
+    "uncured_quad_crucible",
+    "uncured_ender_quad_crucible"
+}
+
+print("[lava_crucible] Checking if uncured nodes exist in registry...")
+for _, node_name in ipairs(recipes_to_verify) do
+    local full_name = "lava_crucible:" .. node_name
+    if minetest.registered_nodes[full_name] then
+        print("[lava_crucible] ✓ Node registered: " .. full_name)
+    else
+        print("[lava_crucible] ✗ ERROR: Node NOT found in registry: " .. full_name)
+    end
+end
+
+print("[lava_crucible] ========== END VERIFICATION ==========")

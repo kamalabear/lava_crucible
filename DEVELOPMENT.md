@@ -251,3 +251,20 @@ Technic dust definitions remain owned by `technic`; lava_crucible only consumes 
 ## Future enhancement ideas
 
 - **Lava-throw dust:** when stone is thrown directly into lava (no crucible), occasionally spawn a mineral dust item that floats to the surface for the player to grab
+- **More ore likelihood from compressed stone:** 
+- **Slow heating:** Crucibles should heat up slowly, not instantly
+- **Longer bake time:** The raw crucible bakes very quickly - it should take longer to be done.
+- **Document multi-user usage:** Add explanation to USAGE.md of how multiple users can use the different types of crucibles
+- **Remove hot crucibles from catalog:**
+- **Add sounds**
+- **Make crucible types more visually distinct**
+- **Recover crucible material:** Allow crucibles to be pulverized into clay graphite dust that can be reconstituted into clay graphite.
+- **Make ore_dust optional**
+
+## Bugs
+
+- **Hot crucible is placeable without lava**
+- **Unknown item produced:** The crucible generated technic:pyrite_dust which then showed as an unknown item in the inventory.
+- **Sometimes uncured crucibles never finish baking:** Reports of small crucibles intermittently having issues where the baking does not complete.  Medium and large crucibles never finish baking.
+- **Ender crucibles won't open:** Medium and large ender crucibles won't open the GUI.
+- **Drop in is undocumented**
