@@ -109,6 +109,8 @@ local dust_table = {}
 local dust_entries_by_item = {}
 local dust_items_requiring_mineral_group = {}
 local dust_total_weight = 0
+local lump_table = {}
+local lump_total_weight = 0
 local mod_storage = minetest.get_mod_storage()
 local ender_users_seen = {}
 
@@ -121,10 +123,18 @@ end
 
 function lava_crucible.register_dust_bonus(itemname, weight, options)
     if type(itemname) ~= "string" or itemname == "" then
-        error("lava_crucible.register_dust_bonus: itemname must be a non-empty string")
+        minetest.log("warning", "[lava_crucible] register_dust_bonus: itemname must be a non-empty string")
+        return false
     end
     if type(weight) ~= "number" or weight <= 0 then
-        error("lava_crucible.register_dust_bonus: weight must be a positive number")
+        minetest.log("warning", "[lava_crucible] register_dust_bonus: weight must be a positive number")
+        return false
+    end
+
+    -- Validate that the item is registered
+    if not minetest.registered_items[itemname] then
+        minetest.log("warning", "[lava_crucible] Skipping unregistered dust item: " .. itemname)
+        return false
     end
 
     local entry = dust_entries_by_item[itemname]
@@ -139,6 +149,8 @@ function lava_crucible.register_dust_bonus(itemname, weight, options)
     if options and options.grant_mineral_dust_group then
         dust_items_requiring_mineral_group[itemname] = true
     end
+    
+    return true
 end
 
 local function apply_mineral_dust_overrides()
@@ -155,11 +167,6 @@ local function apply_mineral_dust_overrides()
         end
     end
 end
-
-minetest.register_on_mods_loaded(function()
-    apply_mineral_dust_overrides()
-    recompute_dust_total_weight()
-end)
 
 local function save_ender_users_seen()
     local users = {}
@@ -491,61 +498,147 @@ local function refresh_ender_user_from_nearby_player(pos)
     end
 end
 
--- Weighted dust table: higher weight = more common
-lava_crucible.register_dust_bonus("ore_dust:iron_dust", 40)
-lava_crucible.register_dust_bonus("ore_dust:copper_dust", 30)
-lava_crucible.register_dust_bonus("ore_dust:gold_dust", 8)
-lava_crucible.register_dust_bonus("ore_dust:diamond_dust", 1)
-
-if minetest.get_modpath("moreores") then
-    lava_crucible.register_dust_bonus("ore_dust:tin_dust", 20)
-    lava_crucible.register_dust_bonus("ore_dust:silver_dust", 5)
-    lava_crucible.register_dust_bonus("ore_dust:mithril_dust", 2)
-end
-
-if minetest.get_modpath("technic") then
-    local technic_dusts = {
-        {item = "technic:coal_dust", weight = 18},
-        {item = "technic:copper_dust", weight = 30},
-        {item = "technic:gold_dust", weight = 8},
-        {item = "technic:lead_dust", weight = 16},
-        {item = "technic:tin_dust", weight = 20},
-        {item = "technic:silver_dust", weight = 5},
-        {item = "technic:mithril_dust", weight = 2},
-        {item = "technic:zinc_dust", weight = 16},
-        {item = "technic:chromium_dust", weight = 6},
-        {item = "technic:sulfur_dust", weight = 6},
-    }
-
-    if minetest.get_modpath("everness") then
-        table.insert(technic_dusts, {item = "technic:pyrite_dust", weight = 4})
-    end
-
-    if minetest.get_modpath("nether") then
-        table.insert(technic_dusts, {item = "technic:nether_dust", weight = 3})
-    end
-
-    for _, entry in ipairs(technic_dusts) do
-        lava_crucible.register_dust_bonus(entry.item, entry.weight, {grant_mineral_dust_group = true})
-    end
-end
-
-local lump_table = {
-    {item = "default:iron_lump",   weight = 40},
-    {item = "default:copper_lump", weight = 30},
-    {item = "default:gold_lump",   weight = 8},
-    {item = "default:diamond",     weight = 1},
+-- Default weight assignments based on material rarity (can be overridden later)
+-- These are sensible defaults used when automatically discovering dusts
+local dust_weight_defaults = {
+    coal = 18,
+    copper = 30,
+    iron = 40,
+    gold = 8,
+    silver = 5,
+    tin = 20,
+    lead = 16,
+    zinc = 16,
+    chromium = 6,
+    sulfur = 6,
+    mithril = 2,
+    diamond = 1,
+    pyrite = 4,
+    nether = 3,
 }
-if minetest.get_modpath("moreores") then
-    table.insert(lump_table, {item = "moreores:tin_lump",    weight = 20})
-    table.insert(lump_table, {item = "moreores:silver_lump", weight = 5})
-    table.insert(lump_table, {item = "moreores:mithril_lump",weight = 2})
+
+local lump_weight_defaults = {
+    iron = 40,
+    copper = 30,
+    gold = 8,
+    tin = 20,
+    silver = 5,
+    mithril = 2,
+    diamond = 1,
+}
+
+-- Function to get default weight for a dust/lump by material name
+local function get_default_weight(material_name, is_lump)
+    local defaults = is_lump and lump_weight_defaults or dust_weight_defaults
+    return defaults[material_name] or 10  -- Default to 10 if material unknown
 end
 
-local lump_total_weight = 0
-for _, entry in ipairs(lump_table) do
-    lump_total_weight = lump_total_weight + entry.weight
+-- Dynamically discover dusts at mod load time
+local function discover_and_register_dusts()
+    print("[lava_crucible] Discovering dust items...")
+    local dust_count = 0
+    local scanned_count = 0
+    
+    -- Scan both registered items AND registered nodes
+    -- (some mods register dusts as nodes, not craftitems)
+    local items_to_scan = {}
+    for itemname, def in pairs(minetest.registered_items) do
+        items_to_scan[itemname] = def
+    end
+    for nodename, def in pairs(minetest.registered_nodes) do
+        items_to_scan[nodename] = def
+    end
+    
+    -- Process scanned items for dusts
+    for itemname, def in pairs(items_to_scan) do
+        if itemname:find("_dust$") then
+            scanned_count = scanned_count + 1
+            -- Extract material name by finding the last underscore and removing "_dust"
+            -- e.g., "ore_dust:copper_dust" -> "copper", "technic:coal_dust" -> "coal"
+            local material = itemname:match("([^_:]*)[_:]?([^_:]*)_dust$") or ""
+            -- Use the rightmost part before _dust as the material name
+            material = itemname:gsub(".*[_:]", ""):gsub("_dust$", "")
+            
+            if material ~= "" then
+                local weight = get_default_weight(material, false)
+                
+                if lava_crucible.register_dust_bonus(itemname, weight, {grant_mineral_dust_group = true}) then
+                    dust_count = dust_count + 1
+                    minetest.log("verbose", "[lava_crucible] Auto-registered dust: " .. itemname .. 
+                        " (material: " .. material .. ", weight: " .. weight .. ")")
+                end
+            else
+                minetest.log("verbose", "[lava_crucible] Skipped dust with unparseable name: " .. itemname)
+            end
+        end
+    end
+    
+    minetest.log("action", "[lava_crucible] Discovered and registered " .. dust_count .. 
+        " dust items (scanned " .. scanned_count .. ")")
 end
+
+-- Dynamically discover lumps at mod load time  
+local function discover_and_register_lumps()
+    print("[lava_crucible] Discovering lump items...")
+    local lump_count = 0
+    local scanned_count = 0
+    
+    -- Scan both registered items AND registered nodes
+    local items_to_scan = {}
+    for itemname, def in pairs(minetest.registered_items) do
+        items_to_scan[itemname] = def
+    end
+    for nodename, def in pairs(minetest.registered_nodes) do
+        items_to_scan[nodename] = def
+    end
+    
+    -- Process scanned items for lumps
+    for itemname, def in pairs(items_to_scan) do
+        if itemname:find("_lump$") then
+            scanned_count = scanned_count + 1
+            -- Extract material name by finding the rightmost part before _lump
+            local material = itemname:gsub(".*[_:]", ""):gsub("_lump$", "")
+            
+            if material ~= "" then
+                local weight = get_default_weight(material, true)
+                
+                local entry = {item = itemname, weight = weight}
+                table.insert(lump_table, entry)
+                lump_count = lump_count + 1
+                minetest.log("verbose", "[lava_crucible] Auto-registered lump: " .. itemname .. 
+                    " (material: " .. material .. ", weight: " .. weight .. ")")
+            else
+                minetest.log("verbose", "[lava_crucible] Skipped lump with unparseable name: " .. itemname)
+            end
+        end
+    end
+    
+    minetest.log("action", "[lava_crucible] Discovered and registered " .. lump_count .. 
+        " lump items (scanned " .. scanned_count .. ")")
+end
+
+
+-- Discovery happens at mods_loaded time
+minetest.register_on_mods_loaded(function()
+    discover_and_register_dusts()
+    
+    -- Discover lumps
+    discover_and_register_lumps()
+    
+    -- Compute lump total weight
+    lump_total_weight = 0
+    for _, entry in ipairs(lump_table) do
+        lump_total_weight = lump_total_weight + entry.weight
+    end
+    
+    minetest.log("action", "[lava_crucible] Lump pool total weight: " .. lump_total_weight)
+    
+    -- Apply dust overrides and finalize dust pool
+    apply_mineral_dust_overrides()
+    recompute_dust_total_weight()
+    
+    minetest.log("action", "[lava_crucible] Dust pool total weight: " .. dust_total_weight)
+end)
 
 local function pick_random_dust()
     if #dust_table == 0 or dust_total_weight <= 0 then
@@ -557,22 +650,50 @@ local function pick_random_dust()
     for _, entry in ipairs(dust_table) do
         cumulative = cumulative + entry.weight
         if roll <= cumulative then
-            return entry.item
+            -- Defensive check: ensure item is registered
+            if minetest.registered_items[entry.item] then
+                return entry.item
+            else
+                minetest.log("warning", "[lava_crucible] Dust item no longer registered: " .. entry.item)
+                return nil
+            end
         end
     end
-    return dust_table[#dust_table].item
+    
+    -- Fallback: try to return last item if it's registered
+    local last_item = dust_table[#dust_table]
+    if last_item and minetest.registered_items[last_item.item] then
+        return last_item.item
+    end
+    return nil
 end
 
 local function pick_random_lump()
+    if #lump_table == 0 or lump_total_weight <= 0 then
+        return nil
+    end
+
     local roll = math.random() * lump_total_weight
     local cumulative = 0
     for _, entry in ipairs(lump_table) do
         cumulative = cumulative + entry.weight
         if roll <= cumulative then
-            return entry.item
+            -- Defensive check: ensure item is registered
+            if minetest.registered_items[entry.item] then
+                return entry.item
+            else
+                minetest.log("warning", "[lava_crucible] Lump item no longer registered: " .. entry.item)
+                return nil
+            end
         end
     end
-    return lump_table[#lump_table].item
+    
+    -- Fallback: try to return last item if it's registered
+    local last_item = lump_table[#lump_table]
+    if last_item and minetest.registered_items[last_item.item] then
+        return last_item.item
+    end
+    return nil
 end
 
 local function process_input_stack(inv, slot)

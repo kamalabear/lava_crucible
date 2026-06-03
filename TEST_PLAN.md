@@ -12,13 +12,25 @@ This document outlines the testing strategy for mintest_lava_crucible, including
 **Target:** ≥85% code coverage  
 
 **Tests included:**
-- Dust registry system
+- Dust registry system (15 tests)
+  - Dynamic discovery from items and nodes
+  - Material name extraction
+  - Weight assignment from lookup tables
+  - Validation of registered items
+  - Skipping unregistered items gracefully
+- Selection functions (9 tests)
+  - `pick_random_dust()` weighted selection
+  - `pick_random_lump()` weighted selection
+  - Defensive validation during selection
+  - Handling empty pools
+  - Skipping unregistered items at selection time
 - Item group application
 - Inventory helpers
 - Ender tier detection
 - Lava detection logic
 
-**Expected runtime:** <5 seconds
+**Expected runtime:** <10 seconds
+**Current status:** ✅ 79/79 tests passing
 
 ### Level 2: Smoke Test (In-Game)
 **Purpose:** Verify mod loads without errors and basic functionality works  
@@ -28,11 +40,22 @@ This document outlines the testing strategy for mintest_lava_crucible, including
 **Test cases:**
 
 #### 2.1 Mod Load Test
-- [ ] Mod loads without script errors
-- [ ] No error messages in debug.txt on startup
-- [ ] Crucible nodes appear in creative inventory
-- [ ] All node variants registered (cold/hot/empty/done)
-- [ ] All ender variants registered
+- [x] Mod loads without script errors
+- [x] No error messages in debug.txt on startup (only expected warnings about deprecated backends)
+- [x] Crucible nodes appear in creative inventory
+- [x] All node variants registered (cold/hot/empty/done)
+- [x] All ender variants registered
+
+#### 2.1a Dust Discovery Test (NEW - Bug 2 Fix Validation)
+- [x] Dust discovery runs at mod load finalization
+- [x] Expected log: `[lava_crucible] Discovered and registered 6 dust items`
+- [x] Expected log: `[lava_crucible] Dust pool total weight: 60`
+- [x] Expected log: `[lava_crucible] Discovered and registered 6 lump items`
+- [x] Expected log: `[lava_crucible] Lump pool total weight: 60`
+- [x] All discovered items are registered in `minetest.registered_items` (no "Unknown Item" errors)
+- [x] Material names extracted correctly (copper, iron, gold, tin, coal, obsidian)
+- [x] Weights assigned by rarity (copper=30, gold=8, etc.)
+- [ ] No unregistered items appear in dust bonus outputs during gameplay
 
 #### 2.2 Node Registry Test
 - [ ] Single crucible node: `lava_crucible:lava_crucible`

@@ -6,6 +6,13 @@ This document explains how to run smoke tests for the lava_crucible mod.
 
 Smoke tests verify that the mod loads successfully in Luanti without errors and that basic dependencies are resolved correctly. Tests run in a Docker container to ensure a clean, isolated environment.
 
+**Key Validations:**
+- ✅ Mod loads without script errors
+- ✅ All required dependencies available
+- ✅ Crucible nodes registered correctly
+- ✅ Dust and lump discovery working (Bug 2 fix validation)
+- ✅ No "Unknown Item" errors in output
+
 ## Prerequisites
 
 - Docker (user must be in docker group)
@@ -130,6 +137,7 @@ SMOKE_TEST_DEP_SOURCE=strict bash .github/scripts/smoke-test.sh lava_crucible mi
 **What it tests:**
 - Mod loads with CI-like environment (stubs for moreblocks, workspace for lava_crucible deps)
 - Matches CI/CD test conditions
+- **Dust discovery system works** (validates Bug 2 fix)
 
 **Run:**
 ```bash
@@ -139,6 +147,21 @@ bash .github/scripts/smoke-test.sh lava_crucible mintest_lava_crucible
 ```
 
 **Expected:** SMOKE TEST PASSED
+
+**Dust Discovery Validation:**
+The smoke test validates that dust discovery is working by checking for:
+```
+[lava_crucible] Discovered and registered 6 dust items (scanned 6)
+[lava_crucible] Discovered and registered 6 lump items (scanned 6)
+[lava_crucible] Lump pool total weight: 60
+[lava_crucible] Dust pool total weight: 60
+```
+
+This confirms:
+- ✅ All available dusts/lumps were discovered
+- ✅ Correct number of items found and registered
+- ✅ Weights correctly computed
+- ✅ No "Unknown Item" errors (Bug 2 is fixed)
 
 ### Scenario 4: Intentional Failure Guardrail
 

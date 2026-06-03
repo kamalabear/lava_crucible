@@ -209,34 +209,77 @@ Crucibles with an empty owner string (e.g. placed before this feature or by non-
 
 ---
 
+## Dust and Lump Discovery System
+
+At mod load finalization (`minetest.register_on_mods_loaded()`), lava_crucible automatically **discovers and registers all available dusts and lumps**:
+
+1. **Discovery Phase:**
+   - Scans both `minetest.registered_items` and `minetest.registered_nodes` (some dusts register as nodes)
+   - Collects all items with names ending in `_dust` or `_lump`
+   - Extracts material name: `itemname:gsub("_dust$", ""):match("[^_:]*$")` → e.g., `ore_dust:copper_dust` → `"copper"`
+
+2. **Weight Assignment:**
+   - Uses a material lookup table with sensible rarity-based defaults:
+     - Common: copper (30), iron (40), coal (18), tin (20)
+     - Rare: gold (8), silver (5), mithril (2), diamond (1)
+     - Unknown materials: default weight (10)
+
+3. **Registration Validation (Two-Layer Defense):**
+   - **Registration-time check:** `register_dust_bonus()` validates item is registered before adding to pool
+   - **Selection-time check:** `pick_random_dust()` and `pick_random_lump()` verify items before returning (prevents selection of unregistered items even if they somehow enter the pool)
+   - Unregistered items are silently skipped with a debug warning
+
+4. **Automatic Slot Expansion:**
+   - Input/output inventory slots are sized based on `#dust_table` and `#lump_table` at node construction
+   - New dusts discovered → new slots automatically appear on new crucibles
+
+**Benefits of Dynamic Discovery:**
+- ✅ Works with ANY mod that registers dusts (no hardcoding needed)
+- ✅ No version compatibility issues (unregistered items just skipped)
+- ✅ Two-layer validation prevents "Unknown Item" rendering
+- ✅ Automatically weights materials by rarity
+- ✅ Extensible: compatible mods just register items ending in `_dust` or `_lump`
+
+**Example Discovery:**
+- `ore_dust` mod registers: `ore_dust:copper_dust`, `ore_dust:tin_dust`, etc.
+- `technic` mod registers: `technic:coal_dust`, `technic:copper_dust`, etc.
+- Lava crucible discovers all of them and assigns appropriate weights
+- Pool automatically includes dusts from any mod that follows the naming convention
+
+---
+
 ## `dust_table` and adding new dusts
 
-`dust_table` remains the runtime source of truth, but new entries are now registered through the public helper `lava_crucible.register_dust_bonus(itemname, weight, options)`.
+`dust_table` is populated via `discover_and_register_dusts()` at mod load time, which:
+1. Automatically discovers all items ending in `_dust`
+2. Calls `lava_crucible.register_dust_bonus()` for each with auto-determined weight
+
+Manual registration is also supported for custom behavior:
 
 ```lua
+-- Automatic discovery (built-in):
+-- Runs in register_on_mods_loaded(), discovers all _dust items
+
+-- Manual registration (optional, for advanced use):
 lava_crucible.register_dust_bonus("ore_dust:iron_dust", 40)
 lava_crucible.register_dust_bonus("technic:lead_dust", 16, {
     grant_mineral_dust_group = true,
 })
 ```
 
-Weights are relative — a weight of 40 against a total of 79 gives roughly a 50% chance. Register all dust entries during mod load, then `lava_crucible` recomputes `dust_total_weight` in `register_on_mods_loaded()` after optional integrations have finished registering their items.
-
 The helper deduplicates by item name, so re-registering an existing item updates its weight instead of creating an extra output slot.
 
-If `moreores` is present, tin/silver/mithril entries are appended at load time. If `technic` is present, lava_crucible adds a curated set of non-alloy technic dusts and can mark those items with `mineral_dust = 1` by passing `grant_mineral_dust_group = true`.
+If `grant_mineral_dust_group = true` is passed, the item receives `mineral_dust = 1` group for compatibility checking.
 
-Dust slot counts across all tiers are calculated from `#dust_table` at construction time, so they expand automatically when new entries are added.
+Dust slot counts across all tiers are calculated from `#dust_table` at construction time, so they expand automatically when new entries are discovered.
 
-There is currently no internal lava_crucible crafting recipe that uses `group:mineral_dust`; `lava_crucible:obsidian_clay` intentionally remains tied to `ore_dust:obsidian_dust`.
-
-Compressed stones use a parallel weighted table (`lump_table`) and `pick_random_lump()` for bonus outputs instead of dusts.
+Compressed stones use a parallel system (`lump_table` and `pick_random_lump()`) for bonus outputs instead of dusts.
 
 Current compressed stone rule:
-- Input item: Any item with `_compressed` in the name (e.g., `moreblocks:cobble_compressed`, `moreblocks:desert_cobble_compressed`)
+- Input item: Any item with `_compressed` in the name (e.g., `moreblocks:cobble_compressed`)
 - Soil yield: 9 per item
 - Bonus chance: same `lava_crucible_dust_chance`
-- Bonus pool: `default:iron_lump`, `default:copper_lump`, `default:gold_lump`, rare `default:diamond`, and optional `moreores` lumps
+- Bonus pool: Automatically discovered from items ending in `_lump` (e.g., `default:iron_lump`, `default:copper_lump`, `default:gold_lump`, `default:diamond_lump`)
 
 ---
 
