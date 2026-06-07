@@ -21,6 +21,7 @@ The Lava Crucible processes stone into **lava soil** — a fertile, animated soi
 3. **Add stone** — either:
    - Punch the crucible while holding any stone-group item (adds the whole stack)
    - Right-click to open the GUI and drag items into the input slot(s)
+   - Drop items directly above the crucible: item entities lying slightly above the crucible will be collected automatically into the input slot (if space is available). Supports regular stone-group items and `_compressed` variants; collection occurs within ~1s.
 4. **Wait** — after one full conversion interval the crucible begins processing automatically
 5. **Collect output** — right-click to open the GUI and take lava soil and bonus drops from the output slots
 

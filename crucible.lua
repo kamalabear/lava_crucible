@@ -404,6 +404,11 @@ local function is_valid_crucible_input(itemname)
     return minetest.get_item_group(itemname, "stone") > 0 or is_compressed_stone(itemname)
 end
 
+-- ABM-driven drop-in behaviour: the ABM at the end of this file
+-- calls `collect_dropped_stone(pos)` once per second to gather
+-- valid stone item entities dropped slightly above the crucible
+-- into the `input` inventory. Keep `USAGE.md` and `bugs/BUG_5_RCA.md`
+-- in sync when changing this behaviour.
 local function collect_dropped_stone(pos)
     local node = minetest.get_node(pos)
     if is_ender_crucible_node(node.name) then

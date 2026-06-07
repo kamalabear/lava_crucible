@@ -325,3 +325,9 @@ N/A
 - Mainly a documentation task
 - Add to USAGE.md under "Feeding Items to Crucible" section
 
+### Investigation Findings (moved)
+
+Investigation findings and RCA for this issue have been moved to a dedicated file: `bugs/BUG_5_RCA.md`.
+
+See the separate file for full root cause analysis, evidence, and proposed resolution.
+
