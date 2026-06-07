@@ -395,6 +395,8 @@ end
 
 local conversion_interval = tonumber(minetest.settings:get("lava_crucible_conversion_interval")) or 10.0
 local dust_chance = tonumber(minetest.settings:get("lava_crucible_dust_chance")) or 0.5
+-- Probability that compressed stone yields a lump (ore) instead of dust as bonus
+local compressed_lump_chance = tonumber(minetest.settings:get("lava_crucible_compressed_lump_chance")) or 0.5
 
 local function is_compressed_stone(itemname)
     return string.find(itemname, "_compressed") ~= nil
@@ -713,7 +715,7 @@ local function process_input_stack(inv, slot)
 
     if is_compressed_stone(itemname) then
         soil_count = 9
-        if math.random() < 0.5 then
+        if math.random() < compressed_lump_chance then
             bonus_item = pick_random_lump()
         else
             bonus_item = pick_random_dust()
