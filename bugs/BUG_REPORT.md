@@ -358,3 +358,8 @@ Millet and Jute cannot be farmed from volcanic soil.
 
 ### Actual Result
 - Plants grow then disappear
+
+### Investigation
+Investigation findings and RCA for this issue have been moved to a dedicated file: `bugs/BUG_6_RCA.md`.
+
+Please see `bugs/BUG_6_RCA.md` for detailed analysis, hypotheses, and next steps. If you can provide the crop mod name (the mod that provides Millet and Jute) or a small repro fixture, I will reproduce and pinpoint the root cause.
