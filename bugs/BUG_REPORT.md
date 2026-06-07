@@ -282,7 +282,7 @@ Check debug.txt for on_rightclick errors
 ## Bug 5: Drop-In Feature Is Undocumented
 
 Date: 2026-06-02
-Status: Open
+Status: Resolved - Fixed
 Severity: Low
 
 ### Summary
@@ -331,35 +331,55 @@ N/A
 - Mainly a documentation task
 - Add to USAGE.md under "Feeding Items to Crucible" section
 
-### Investigation Findings (moved)
-
-Investigation findings and RCA for this issue have been moved to a dedicated file: `bugs/BUG_5_RCA.md`.
-
-See the separate file for full root cause analysis, evidence, and proposed resolution.
+### Resolution
+Status: Fixed (2026-06-07) — The drop-in feature is now documented in USAGE.md under "Getting started", step 3. The documentation explains that items can be dropped directly above the crucible and will be automatically collected into the input inventory within ~1s. See `bugs/BUG_5_RCA.md` for full details.
 
 ## Bug 6: Millet and Jute grow then disappear
 Date: 2026-06-07
-Status: Open
+Status: Resolved - Fixed (in volcanic_soil)
 Severity: Medium
 
 ### Summary
-Millet and Jute cannot be farmed from volcanic soil.
+Millet and Jute cannot be farmed from volcanic soil — they grow and then disappear before harvest.
 
 ### Environment
 - OS: Linux
-- Context: Feature discovery during testing
-- Version: Latest from GitHub (Jun 6, 2026)
+- Context: Manual testing in Luanti
+- Version: Latest from GitHub (Jun 7, 2026)
+- Mods: lava_crucible (tested on volcanic soil), better_farming (crop provider)
 
 ### Steps To Reproduce
-1. Plant Millet or Jute seed on volcanic soil
+1. Prepare a tilled volcanic soil plot
+2. Plant Jute seed (better_farming:jute) on the tilled soil
+3. Wait for crop to grow (with volcanic_soil growth boost, takes ~3 seconds)
+4. Observe: Crop disappears after reaching stage 3 (before harvest)
 
 ### Expected Result
-- Appropriate plant grows and can be harvested
+- Crops should mature and be harvestable
+- Jute should reach final stage and yield drops
 
 ### Actual Result
-- Plants grow then disappear
+- Crop grows through stages 1 → 2 → 3 then disappears (becomes air)
+- No harvest drops produced
 
-### Investigation
-Investigation findings and RCA for this issue have been moved to a dedicated file: `bugs/BUG_6_RCA.md`.
+### Investigation & Resolution
+**Root Cause**: This is **NOT** a lava_crucible or better_farming bug. The issue is in **volcanic_soil**.
 
-Please see `bugs/BUG_6_RCA.md` for detailed analysis, hypotheses, and next steps. If you can provide the crop mod name (the mod that provides Millet and Jute) or a small repro fixture, I will reproduce and pinpoint the root cause.
+The `advance_growth_stage()` function in volcanic_soil uses regex pattern matching to auto-increment crop stage numbers (e.g., `jute_3` → `jute_4`), but doesn't validate that the next stage exists. When a crop has only 3 stages (as jute does), trying to advance to stage 4 fails because the node isn't registered, and minetest.set_node defaults to air.
+
+**Status**: Transferred to and **FIXED** in `volcanic_soil/BUG_REPORT.md` as Bug 1.
+
+**Fix Details**: volcanic_soil.lua was updated to:
+1. Query `farming.registered_plants[crop_name].steps` to determine max stage
+2. Refuse to advance crops beyond their final stage
+3. Include fallback detection by counting registered stage nodes
+4. Full unit test coverage with 11 passing tests
+
+**Fixed in commit**: 7d327c3
+**Resolution verified**: 2026-06-07 - Manual testing confirms crops stop at stage 3 and are harvestable
+
+See `volcanic_soil/BUG_REPORT.md` for the full RCA, reproduction steps, and required fix.
+
+**Workaround**: Plant jute on regular (non-volcanic) soil to avoid growth boost auto-advancement beyond stage limit.
+
+---
