@@ -337,3 +337,24 @@ Investigation findings and RCA for this issue have been moved to a dedicated fil
 
 See the separate file for full root cause analysis, evidence, and proposed resolution.
 
+## Bug 6: Millet and Jute grow then disappear
+Date: 2026-06-07
+Status: Open
+Severity: Medium
+
+### Summary
+Millet and Jute cannot be farmed from volcanic soil.
+
+### Environment
+- OS: Linux
+- Context: Feature discovery during testing
+- Version: Latest from GitHub (Jun 6, 2026)
+
+### Steps To Reproduce
+1. Plant Millet or Jute seed on volcanic soil
+
+### Expected Result
+- Appropriate plant grows and can be harvested
+
+### Actual Result
+- Plants grow then disappear
