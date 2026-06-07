@@ -274,15 +274,15 @@ local function get_ender_inventory(playername, tier)
     mark_ender_user(playername)
 
     local inv_name, input_slots, soil_slots, dust_slots
-    if tier == "double" then
-        inv_name    = "lava_crucible:ender_double_" .. playername
-        input_slots = 2; soil_slots = 2; dust_slots = #dust_table * 2
+            if tier == "double" then
+                inv_name    = "lava_crucible:ender_double_" .. playername
+                input_slots = 2; soil_slots = 4; dust_slots = #dust_table * 1
     elseif tier == "quad" then
         inv_name    = "lava_crucible:ender_quad_" .. playername
-        input_slots = 4; soil_slots = 4; dust_slots = #dust_table * 4
+        input_slots = 4; soil_slots = 8; dust_slots = #dust_table * 2
     else
         inv_name    = "lava_crucible:ender_" .. playername
-        input_slots = 1; soil_slots = 1; dust_slots = #dust_table
+        input_slots = 1; soil_slots = 2; dust_slots = math.ceil(#dust_table / 2)
     end
 
     local inv = minetest.get_inventory({type = "detached", name = inv_name})
@@ -713,7 +713,11 @@ local function process_input_stack(inv, slot)
 
     if is_compressed_stone(itemname) then
         soil_count = 9
-        bonus_item = pick_random_lump()
+        if math.random() < 0.5 then
+            bonus_item = pick_random_lump()
+        else
+            bonus_item = pick_random_dust()
+        end
     elseif minetest.get_item_group(itemname, "stone") > 0 then
         soil_count = 1
         bonus_item = pick_random_dust()
@@ -837,8 +841,8 @@ local crucible_common = {
         meta:set_string("infotext", "Lava Crucible")
         local inv = meta:get_inventory()
         inv:set_size("input", 1)
-        inv:set_size("soil_output", 1)
-        inv:set_size("dust_output", #dust_table)
+            inv:set_size("soil_output", 2)
+            inv:set_size("dust_output", math.ceil(#dust_table / 2))
     end,
     on_timer = function(pos, elapsed)
         if not has_adjacent_lava(pos) then return false end
@@ -860,8 +864,9 @@ local crucible_common = {
             return
         end
         local inv = meta:get_inventory()
-        local dust_cols = math.min(#dust_table, 8)
-        local dust_rows = math.ceil(#dust_table / dust_cols)
+        local dust_count = math.ceil(#dust_table / 2)
+        local dust_cols = math.min(dust_count, 8)
+        local dust_rows = math.ceil(dust_count / dust_cols)
         local dust_y = 3.3
         local inv_label_y = dust_y + dust_rows + 0.4
         local inv_y = inv_label_y + 0.5
@@ -873,7 +878,7 @@ local crucible_common = {
             "label[0.5,1;Input:]" ..
             "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";input;0.5,1.5;1,1;]" ..
             "label[2.5,0.3;Soil Output:]" ..
-            "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";soil_output;2.5,1;1,1;]" ..
+            "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";soil_output;2.5,1;2,1;]" ..
             "label[0.5," .. (dust_y - 0.4) .. ";Ore Dust:]" ..
             "list[nodemeta:" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ";dust_output;0.5," .. dust_y .. ";" .. dust_cols .. "," .. dust_rows .. ";]" ..
             "label[0.5," .. inv_label_y .. ";Player Inventory:]" ..
@@ -915,8 +920,8 @@ crucible_double_common.on_construct = function(pos)
     meta:set_string("infotext", "Double Lava Crucible")
     local inv = meta:get_inventory()
     inv:set_size("input", 2)
-    inv:set_size("soil_output", 2)
-    inv:set_size("dust_output", #dust_table * 2)
+    inv:set_size("soil_output", 4)
+    inv:set_size("dust_output", #dust_table * 1)
 end
 crucible_double_common.on_timer = function(pos, elapsed)
     if not has_adjacent_lava(pos) then return false end
@@ -939,7 +944,7 @@ crucible_double_common.on_rightclick = function(pos, node, clicker, itemstack, p
         return
     end
     local pnode = pos.x .. "," .. pos.y .. "," .. pos.z
-    local dust_count = #dust_table * 2
+    local dust_count = #dust_table * 1
     local dust_cols = math.min(dust_count, 8)
     local dust_rows = math.ceil(dust_count / dust_cols)
     local dust_y = 3.3
@@ -953,7 +958,7 @@ crucible_double_common.on_rightclick = function(pos, node, clicker, itemstack, p
         "label[0.5,1;Input:]" ..
         "list[nodemeta:" .. pnode .. ";input;0.5,1.5;2,1;]" ..
         "label[3.5,1;Soil Output:]" ..
-        "list[nodemeta:" .. pnode .. ";soil_output;3.5,1.5;2,1;]" ..
+        "list[nodemeta:" .. pnode .. ";soil_output;3.5,1.5;4,1;]" ..
         "label[0.5," .. (dust_y - 0.4) .. ";Ore Dust:]" ..
         "list[nodemeta:" .. pnode .. ";dust_output;0.5," .. dust_y .. ";" .. dust_cols .. "," .. dust_rows .. ";]" ..
         "label[0.5," .. inv_label_y .. ";Player Inventory:]" ..
@@ -1133,8 +1138,9 @@ crucible_ender_common.on_rightclick = function(pos, node, clicker, itemstack, po
     local meta = minetest.get_meta(pos)
     meta:set_string("ender_user", pname)
 
-    local dust_cols = math.min(#dust_table, 8)
-    local dust_rows = math.ceil(#dust_table / dust_cols)
+    local dust_count = math.ceil(#dust_table / 2)
+    local dust_cols = math.min(dust_count, 8)
+    local dust_rows = math.ceil(dust_count / dust_cols)
     local dust_y = 3.3
     local inv_label_y = dust_y + dust_rows + 0.4
     local inv_y = inv_label_y + 0.5
@@ -1146,7 +1152,7 @@ crucible_ender_common.on_rightclick = function(pos, node, clicker, itemstack, po
         "label[0.5,1;Input:]" ..
         "list[detached:" .. inv_name .. ";input;0.5,1.5;1,1;]" ..
         "label[2.5,0.3;Soil Output:]" ..
-        "list[detached:" .. inv_name .. ";soil_output;2.5,1;1,1;]" ..
+        "list[detached:" .. inv_name .. ";soil_output;2.5,1;2,1;]" ..
         "label[0.5," .. (dust_y - 0.4) .. ";Ore Dust:]" ..
         "list[detached:" .. inv_name .. ";dust_output;0.5," .. dust_y .. ";" .. dust_cols .. "," .. dust_rows .. ";]" ..
         "label[0.5," .. inv_label_y .. ";Player Inventory:]" ..
@@ -1291,7 +1297,7 @@ crucible_ender_double_common.on_rightclick = function(pos, node, clicker, itemst
     if not inv then return end
     local meta = minetest.get_meta(pos)
     meta:set_string("ender_user", pname)
-    local dust_count = #dust_table * 2
+    local dust_count = #dust_table * 1
     local dust_cols = math.min(dust_count, 8)
     local dust_rows = math.ceil(dust_count / dust_cols)
     local dust_y = 3.3
@@ -1305,7 +1311,7 @@ crucible_ender_double_common.on_rightclick = function(pos, node, clicker, itemst
         "label[0.5,1;Input:]" ..
         "list[detached:" .. inv_name .. ";input;0.5,1.5;2,1;]" ..
         "label[3.5,1;Soil Output:]" ..
-        "list[detached:" .. inv_name .. ";soil_output;3.5,1.5;2,1;]" ..
+        "list[detached:" .. inv_name .. ";soil_output;3.5,1.5;4,1;]" ..
         "label[0.5,2.8;Ore Dust:]" ..
         "list[detached:" .. inv_name .. ";dust_output;0.5," .. dust_y .. ";" .. dust_cols .. "," .. dust_rows .. ";]" ..
         "label[0.5," .. inv_label_y .. ";Player Inventory:]" ..
@@ -1447,7 +1453,7 @@ crucible_ender_quad_common.on_rightclick = function(pos, node, clicker, itemstac
     if not inv then return end
     local meta = minetest.get_meta(pos)
     meta:set_string("ender_user", pname)
-    local dust_count = #dust_table * 4
+    local dust_count = #dust_table * 2
     local dust_cols = math.min(dust_count, 8)
     local dust_rows = math.ceil(dust_count / dust_cols)
     local dust_y = 5.0
@@ -1631,8 +1637,8 @@ crucible_quad_common.on_construct = function(pos)
     meta:set_string("infotext", "Quad Lava Crucible")
     local inv = meta:get_inventory()
     inv:set_size("input", 4)
-    inv:set_size("soil_output", 4)
-    inv:set_size("dust_output", #dust_table * 4)
+    inv:set_size("soil_output", 8)
+    inv:set_size("dust_output", #dust_table * 2)
 end
 crucible_quad_common.on_timer = function(pos, elapsed)
     if not has_adjacent_lava(pos) then return false end
@@ -1655,7 +1661,7 @@ crucible_quad_common.on_rightclick = function(pos, node, clicker, itemstack, poi
         return
     end
     local pnode = pos.x .. "," .. pos.y .. "," .. pos.z
-    local dust_count = #dust_table * 4
+    local dust_count = #dust_table * 2
     local dust_cols = math.min(dust_count, 8)
     local dust_rows = math.ceil(dust_count / dust_cols)
     local dust_y = 5.0
@@ -1669,7 +1675,7 @@ crucible_quad_common.on_rightclick = function(pos, node, clicker, itemstack, poi
         "label[0.5,1;Input:]" ..
         "list[nodemeta:" .. pnode .. ";input;0.5,1.5;4,1;]" ..
         "label[0.5,2.8;Soil Output:]" ..
-        "list[nodemeta:" .. pnode .. ";soil_output;0.5,3.3;4,1;]" ..
+        "list[nodemeta:" .. pnode .. ";soil_output;0.5,3.3;8,1;]" ..
         "label[0.5,4.6;Ore Dust:]" ..
         "list[nodemeta:" .. pnode .. ";dust_output;0.5," .. dust_y .. ";" .. dust_cols .. "," .. dust_rows .. ";]" ..
         "label[0.5," .. inv_label_y .. ";Player Inventory:]" ..
