@@ -752,6 +752,20 @@ local crucible_common = {
             meta:set_string("owner", placer:get_player_name())
             meta:set_string("infotext", "Lava Crucible (owned by " .. placer:get_player_name() .. ")")
         end
+        -- Normalize state immediately after placement in case a hot/done
+        -- variant was placed directly (e.g. via /giveme). This ensures the
+        -- visible node reflects actual adjacent lava presence.
+        pcall(function()
+            update_crucible_state(pos)
+            if has_adjacent_lava(pos) then
+                local meta = minetest.get_meta(pos)
+                local inv = meta:get_inventory()
+                if inv and not inventory_input_empty(inv) then
+                    local timer = minetest.get_node_timer(pos)
+                    if not timer:is_started() then timer:start(conversion_interval) end
+                end
+            end
+        end)
     end,
     allow_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
         if to_list == "soil_output" or to_list == "dust_output" then
@@ -884,6 +898,17 @@ crucible_double_common.after_place_node = function(pos, placer, itemstack, point
         meta:set_string("owner", placer:get_player_name())
         meta:set_string("infotext", "Double Lava Crucible (owned by " .. placer:get_player_name() .. ")")
     end
+    pcall(function()
+        update_crucible_state(pos)
+        if has_adjacent_lava(pos) then
+            local meta = minetest.get_meta(pos)
+            local inv = meta:get_inventory()
+            if inv and not inventory_input_empty(inv) then
+                local timer = minetest.get_node_timer(pos)
+                if not timer:is_started() then timer:start(conversion_interval) end
+            end
+        end
+    end)
 end
 crucible_double_common.on_construct = function(pos)
     local meta = minetest.get_meta(pos)
@@ -972,6 +997,8 @@ hot_crucible.tiles = {
 }
 hot_crucible.light_source = 10
 hot_crucible.node_box = { type = "fixed", fixed = cbox_filled }
+hot_crucible.groups = hot_crucible.groups or {}
+hot_crucible.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_hot", hot_crucible)
 
 local hot_crucible_empty = clone_table(crucible_common)
@@ -984,6 +1011,8 @@ hot_crucible_empty.tiles = {
     "crucible_side_hot.png",
 }
 hot_crucible_empty.light_source = 7
+hot_crucible_empty.groups = hot_crucible_empty.groups or {}
+hot_crucible_empty.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_hot_empty", hot_crucible_empty)
 
 local hot_crucible_done = clone_table(crucible_common)
@@ -996,6 +1025,8 @@ hot_crucible_done.tiles = {
     "crucible_side_hot.png",
 }
 hot_crucible_done.light_source = 7
+hot_crucible_done.groups = hot_crucible_done.groups or {}
+hot_crucible_done.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_hot_done", hot_crucible_done)
 
 local crucible_ender_common = clone_table(crucible_common)
@@ -1004,6 +1035,13 @@ crucible_ender_common.after_place_node = function(pos, placer, itemstack, pointe
     local meta = minetest.get_meta(pos)
     meta:set_string("ender_user", "")
     meta:set_string("infotext", "Ender Lava Crucible")
+    pcall(function()
+        update_crucible_state(pos)
+        if has_adjacent_lava(pos) then
+            local timer = minetest.get_node_timer(pos)
+            if not timer:is_started() then timer:start(conversion_interval) end
+        end
+    end)
 end
 crucible_ender_common.on_construct = function(pos)
     local meta = minetest.get_meta(pos)
@@ -1160,6 +1198,8 @@ hot_ender_crucible.tiles = {
 }
 hot_ender_crucible.light_source = 10
 hot_ender_crucible.node_box = { type = "fixed", fixed = cbox_filled }
+hot_ender_crucible.groups = hot_ender_crucible.groups or {}
+hot_ender_crucible.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_ender_hot", hot_ender_crucible)
 
 local hot_ender_crucible_empty = clone_table(crucible_ender_common)
@@ -1172,6 +1212,8 @@ hot_ender_crucible_empty.tiles = {
     "crucible_side_hot.png^[colorize:#3f245f:75",
 }
 hot_ender_crucible_empty.light_source = 7
+hot_ender_crucible_empty.groups = hot_ender_crucible_empty.groups or {}
+hot_ender_crucible_empty.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_ender_hot_empty", hot_ender_crucible_empty)
 
 local hot_ender_crucible_done = clone_table(crucible_ender_common)
@@ -1184,6 +1226,8 @@ hot_ender_crucible_done.tiles = {
     "crucible_side_hot.png^[colorize:#3f245f:75",
 }
 hot_ender_crucible_done.light_source = 7
+hot_ender_crucible_done.groups = hot_ender_crucible_done.groups or {}
+hot_ender_crucible_done.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_ender_hot_done", hot_ender_crucible_done)
 
 -- Double Ender Lava Crucible: 2 input/output slots, per-player shared ender inventory
@@ -1310,6 +1354,8 @@ hot_ender_double_crucible.tiles = {
 }
 hot_ender_double_crucible.light_source = 10
 hot_ender_double_crucible.node_box = { type = "fixed", fixed = cbox_double_filled }
+hot_ender_double_crucible.groups = hot_ender_double_crucible.groups or {}
+hot_ender_double_crucible.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_ender_double_hot", hot_ender_double_crucible)
 
 local hot_ender_double_crucible_empty = clone_table(crucible_ender_double_common)
@@ -1322,6 +1368,8 @@ hot_ender_double_crucible_empty.tiles = {
     "crucible_side_hot.png^[colorize:#3f245f:75",
 }
 hot_ender_double_crucible_empty.light_source = 7
+hot_ender_double_crucible_empty.groups = hot_ender_double_crucible_empty.groups or {}
+hot_ender_double_crucible_empty.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_ender_double_hot_empty", hot_ender_double_crucible_empty)
 
 local hot_ender_double_crucible_done = clone_table(crucible_ender_double_common)
@@ -1334,6 +1382,8 @@ hot_ender_double_crucible_done.tiles = {
     "crucible_side_hot.png^[colorize:#3f245f:75",
 }
 hot_ender_double_crucible_done.light_source = 7
+hot_ender_double_crucible_done.groups = hot_ender_double_crucible_done.groups or {}
+hot_ender_double_crucible_done.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_ender_double_hot_done", hot_ender_double_crucible_done)
 
 -- Quad Ender Lava Crucible: 4 input/output slots, per-player shared ender inventory
@@ -1460,6 +1510,8 @@ hot_ender_quad_crucible.tiles = {
 }
 hot_ender_quad_crucible.light_source = 10
 hot_ender_quad_crucible.node_box = { type = "fixed", fixed = cbox_quad_filled }
+hot_ender_quad_crucible.groups = hot_ender_quad_crucible.groups or {}
+hot_ender_quad_crucible.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_ender_quad_hot", hot_ender_quad_crucible)
 
 local hot_ender_quad_crucible_empty = clone_table(crucible_ender_quad_common)
@@ -1472,6 +1524,8 @@ hot_ender_quad_crucible_empty.tiles = {
     "crucible_side_hot.png^[colorize:#3f245f:75",
 }
 hot_ender_quad_crucible_empty.light_source = 7
+hot_ender_quad_crucible_empty.groups = hot_ender_quad_crucible_empty.groups or {}
+hot_ender_quad_crucible_empty.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_ender_quad_hot_empty", hot_ender_quad_crucible_empty)
 
 local hot_ender_quad_crucible_done = clone_table(crucible_ender_quad_common)
@@ -1484,6 +1538,8 @@ hot_ender_quad_crucible_done.tiles = {
     "crucible_side_hot.png^[colorize:#3f245f:75",
 }
 hot_ender_quad_crucible_done.light_source = 7
+hot_ender_quad_crucible_done.groups = hot_ender_quad_crucible_done.groups or {}
+hot_ender_quad_crucible_done.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_ender_quad_hot_done", hot_ender_quad_crucible_done)
 
 local cold_crucible_double = clone_table(crucible_double_common)
@@ -1516,6 +1572,8 @@ hot_crucible_double.tiles = {
 }
 hot_crucible_double.light_source = 10
 hot_crucible_double.node_box = { type = "fixed", fixed = cbox_double_filled }
+hot_crucible_double.groups = hot_crucible_double.groups or {}
+hot_crucible_double.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_double_hot", hot_crucible_double)
 
 local hot_crucible_double_empty = clone_table(crucible_double_common)
@@ -1528,6 +1586,8 @@ hot_crucible_double_empty.tiles = {
     "crucible_side_hot.png",
 }
 hot_crucible_double_empty.light_source = 7
+hot_crucible_double_empty.groups = hot_crucible_double_empty.groups or {}
+hot_crucible_double_empty.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_double_hot_empty", hot_crucible_double_empty)
 
 local hot_crucible_double_done = clone_table(crucible_double_common)
@@ -1540,6 +1600,8 @@ hot_crucible_double_done.tiles = {
     "crucible_side_hot.png",
 }
 hot_crucible_double_done.light_source = 7
+hot_crucible_double_done.groups = hot_crucible_double_done.groups or {}
+hot_crucible_double_done.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_double_hot_done", hot_crucible_double_done)
 
 -- Quad Lava Crucible: 4 input slots, 4 soil output slots, 4x dust slots
@@ -1552,6 +1614,17 @@ crucible_quad_common.after_place_node = function(pos, placer, itemstack, pointed
         meta:set_string("owner", placer:get_player_name())
         meta:set_string("infotext", "Quad Lava Crucible (owned by " .. placer:get_player_name() .. ")")
     end
+    pcall(function()
+        update_crucible_state(pos)
+        if has_adjacent_lava(pos) then
+            local meta = minetest.get_meta(pos)
+            local inv = meta:get_inventory()
+            if inv and not inventory_input_empty(inv) then
+                local timer = minetest.get_node_timer(pos)
+                if not timer:is_started() then timer:start(conversion_interval) end
+            end
+        end
+    end)
 end
 crucible_quad_common.on_construct = function(pos)
     local meta = minetest.get_meta(pos)
@@ -1640,6 +1713,8 @@ hot_crucible_quad.tiles = {
 }
 hot_crucible_quad.light_source = 10
 hot_crucible_quad.node_box = { type = "fixed", fixed = cbox_quad_filled }
+hot_crucible_quad.groups = hot_crucible_quad.groups or {}
+hot_crucible_quad.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_quad_hot", hot_crucible_quad)
 
 local hot_crucible_quad_empty = clone_table(crucible_quad_common)
@@ -1652,6 +1727,8 @@ hot_crucible_quad_empty.tiles = {
     "crucible_side_hot.png",
 }
 hot_crucible_quad_empty.light_source = 7
+hot_crucible_quad_empty.groups = hot_crucible_quad_empty.groups or {}
+hot_crucible_quad_empty.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_quad_hot_empty", hot_crucible_quad_empty)
 
 local hot_crucible_quad_done = clone_table(crucible_quad_common)
@@ -1664,6 +1741,8 @@ hot_crucible_quad_done.tiles = {
     "crucible_side_hot.png",
 }
 hot_crucible_quad_done.light_source = 7
+hot_crucible_quad_done.groups = hot_crucible_quad_done.groups or {}
+hot_crucible_quad_done.groups.not_in_creative_inventory = 1
 minetest.register_node("lava_crucible:lava_crucible_quad_hot_done", hot_crucible_quad_done)
 
 local active_crucible_nodes = {

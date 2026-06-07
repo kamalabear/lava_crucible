@@ -3,7 +3,7 @@
 ## Bug 1: Hot Crucibles Placeable Without Lava
 
 Date: 2026-06-02
-Status: Open
+Status: Resolved - Fixed
 Severity: Medium
 
 ### Summary
@@ -51,12 +51,15 @@ Hot/done state nodes are registered and accessible instead of being hidden from 
 - Consider making hot/done/empty nodes internal-only (not registered in creative inventory)
 - State machine (`update_crucible_state`) may need to run on placement
 
+### Resolution
+Status: Fixed (2026-06-07) — Implemented changes to avoid exposing hot/done state nodes in creative inventory and to normalize node state on placement. See `bugs/BUG_1_RCA.md` for full RCA and implementation details.
+
 ---
 
 ## Bug 2: Unknown Item Produced (technic:pyrite_dust)
 
 Date: 2026-06-02
-Status: Open
+Status: Resolved - Fixed
 Severity: Low
 
 ### Summary
@@ -107,6 +110,9 @@ None captured
 - Check if load order matters (dependencies loading after crucible registers)
 - May need to defer dust pool finalization to `register_on_mods_loaded` callback
 - Consider: should unregistered items error loudly or be silently skipped?
+
+### Resolution
+Status: Fixed (2026-06-03) — See `bugs/BUG_2_RCA.md` for full RCA and implementation details. The mod now validates dust entries at registration time, discovers available dusts during `register_on_mods_loaded`, and performs defensive checks during selection to prevent unregistered items like `technic:pyrite_dust` from appearing in outputs.
 
 ---
 
