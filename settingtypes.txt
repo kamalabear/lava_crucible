@@ -5,3 +5,7 @@ lava_crucible_conversion_interval (Lava crucible conversion interval) float 10.0
 # Base probability (0.0 to 1.0) that a conversion yields a bonus ore dust.
 # The dust type is chosen by weighted rarity (diamond rarest, iron most common).
 lava_crucible_dust_chance (Lava crucible bonus dust chance) float 0.5 0.0 1.0
+
+# Probability (0.0 to 1.0) that compressed stone yields a lump (ore) instead of dust as bonus.
+# 0.5 = 50% lump, 50% dust. 0.0 = always dust. 1.0 = always lump.
+lava_crucible_compressed_lump_chance (Lava crucible compressed stone lump chance) float 0.5 0.0 1.0

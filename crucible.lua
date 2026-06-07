@@ -1640,7 +1640,7 @@ crucible_quad_common.on_construct = function(pos)
     local inv = meta:get_inventory()
     inv:set_size("input", 4)
     inv:set_size("soil_output", 8)
-    inv:set_size("dust_output", #dust_table * 2)
+    inv:set_size("dust_output", #dust_table * 1)
 end
 crucible_quad_common.on_timer = function(pos, elapsed)
     if not has_adjacent_lava(pos) then return false end
@@ -1663,7 +1663,7 @@ crucible_quad_common.on_rightclick = function(pos, node, clicker, itemstack, poi
         return
     end
     local pnode = pos.x .. "," .. pos.y .. "," .. pos.z
-    local dust_count = #dust_table * 2
+    local dust_count = #dust_table
     local dust_cols = math.min(dust_count, 8)
     local dust_rows = math.ceil(dust_count / dust_cols)
     local dust_y = 5.0
